@@ -1,0 +1,10 @@
+pem = family6!FAMILY2023
+
+production:
+    python main.py --production 
+
+development:
+    python main.py 
+
+
+mysql = P@ssw0rd
