@@ -14,10 +14,10 @@ class Person(Base):
     y = Column(Integer())
     birth = Column(Date)
     location = Column(String(255))
-    parents = Column(String(10))
-    spouse = Column(String(10))
-    siblings = Column(String(20))
-    children = Column(String(20))
+    parents = Column(String(40))
+    spouse = Column(String(40))
+    siblings = Column(String(40))
+    children = Column(String(40))
 
 
 class Photo(Base):

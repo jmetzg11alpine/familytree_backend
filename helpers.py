@@ -97,44 +97,44 @@ def get_person_details(db, id):
     siblings_list = process_relationships(db, person.siblings)
     bio = get_bio(person.name)
     profile_photo = get_profile_photo(db, id)
-    return {'name': person.name, 'birth': person.birth, 'location': person.location, 'parents': check_null_list(parents_list),
+    return {'name': person.name, 'id': person.id, 'birth': person.birth, 'location': person.location, 'parents': check_null_list(parents_list),
             'children': check_null_list(children_list), 'spouse': check_null_list(spouse_list), 'siblings': check_null_list(siblings_list),
             'bio': bio, 'profile_photo': profile_photo}
 
 
-def search_potential_relatives(minX, maxX, minY, maxY, db):
+def search_potential_relatives(minX, maxX, minY, maxY, db, id):
     people = db.query(Person).filter(and_(
         Person.x > minX,
         Person.x < maxX,
         Person.y > minY,
         Person.y < maxY
     ))
-    return [{'id': person.id, 'name': person.name} for person in people]
+    return [{'id': person.id, 'name': person.name} for person in people if person.id != id]
 
 
-def find_parents(x, y, db):
-    return search_potential_relatives(x-6, x+6, y-4, y, db)
+def find_parents(x, y, db, id):
+    return search_potential_relatives(x-6, x+6, y-4, y, db, id)
 
 
-def find_siblings(x, y, db):
-    return search_potential_relatives(x-6, x+6, y-2, y+2, db)
+def find_siblings(x, y, db, id):
+    return search_potential_relatives(x-6, x+6, y-1, y+1, db, id)
 
 
-def find_children(x, y, db):
-    return search_potential_relatives(x-6, x+6, y, y+4, db)
+def find_children(x, y, db, id):
+    return search_potential_relatives(x-6, x+6, y, y+4, db, id)
 
 
-def find_spouses(x, y, db):
-    return search_potential_relatives(x-2, x+2, y-2, y+2, db)
+def find_spouses(x, y, db, id):
+    return search_potential_relatives(x-4, x+4, y-1, y+1, db, id)
 
 
-def find_potential_relatives(db, coor):
+def find_potential_relatives(db, coor, id):
     coor = coor.split('<>')
     x, y = int(coor[0]), int(coor[1])
-    parents = find_parents(x, y, db)
-    siblings = find_siblings(x, y, db)
-    children = find_children(x, y, db)
-    spouses = find_spouses(x, y, db)
+    parents = find_parents(x, y, db, id)
+    siblings = find_siblings(x, y, db, id)
+    children = find_children(x, y, db, id)
+    spouses = find_spouses(x, y, db, id)
     return {'parents': parents, 'siblings': siblings, 'children': children, 'spouses': spouses}
 
 
@@ -150,18 +150,18 @@ def update_person_field(db, person_id, field, new_person_id):
         setattr(person, field, updated_ids)
 
 
-def update_related_persons(db, new_person_id, data):
+def update_related_persons(db, person_id, data):
     for relation in ['siblings', 'children', 'parents', 'spouse']:
-        if relation in data:
+        if relation in data and data[relation]:
             for relative_id in data[relation].split(','):
                 if relation == 'children':
-                    update_person_field(db, relative_id, 'parents', str(new_person_id))
+                    update_person_field(db, relative_id, 'parents', str(person_id))
                 elif relation == 'parents':
-                    update_person_field(db, relative_id, 'children', str(new_person_id))
+                    update_person_field(db, relative_id, 'children', str(person_id))
                 elif relation == 'siblings':
-                    update_person_field(db, relative_id, 'siblings', str(new_person_id))
+                    update_person_field(db, relative_id, 'siblings', str(person_id))
                 else:
-                    update_person_field(db, relative_id, 'spouse', str(new_person_id))
+                    update_person_field(db, relative_id, 'spouse', str(person_id))
 
 
 def add_new_relative(formData, squareCoor, db):
@@ -204,3 +204,82 @@ def add_new_relative(formData, squareCoor, db):
         message = 'error'
     name = data['name']
     return message, name
+
+
+def get_values_and_options(person, db, field, potential_relatives, data):
+    if field == 'spouses':
+        ids = getattr(person, 'spouse')
+    else:
+        ids = getattr(person, field)
+    if ids:
+        ids_list = ids.split(',')
+        values = [get_name(db, i) for i in ids_list]
+    else:
+        values = ''
+    value_options = [person['name'] for person in potential_relatives[field]]
+    data[field] = {'values': values, 'options': value_options}
+
+
+def get_editable_details(id, db):
+    person = db.query(Person).filter_by(id=id).first()
+    person_id = person.id
+    x, y = str(person.x), str(person.y)
+    potential_relatives = find_potential_relatives(db, x+'<>'+y, person_id)
+    name = person.name
+    birth = person.birth
+    location = person.location
+    data = {}
+    for field in ['parents', 'siblings', 'children', 'spouses']:
+        get_values_and_options(person, db, field, potential_relatives, data)
+
+    return {'fields': [
+        {'label': 'Name', 'type': 'text', 'value': name, 'multiple': False},
+        {'label': 'Birthday', 'type': 'date', 'value': birth, 'multiple': False},
+        {'label': 'Location', 'type': 'text', 'value': location, 'multiple': False},
+        {'label': 'Parents', 'options': data['parents']['options'], 'value': data['parents']['values'], 'multiple': True},
+        {'label': 'Siblings', 'options': data['siblings']['options'], 'value': data['siblings']['values'], 'multiple': True},
+        {'label': 'Children', 'options': data['children']['options'], 'value': data['children']['values'], 'multiple': True},
+        {'label': 'Spouse', 'options': data['spouses']['options'], 'value': data['spouses']['values'], 'multiple': True}
+        ]}
+
+
+def get_updated_data(data, db):
+    values_with_list_key = {'Parents': 'parents', 'Siblings': 'siblings', 'Children': 'children', 'Spouse': 'spouse'}
+    new_data = {}
+    for field in data['fields']:
+        label = field['label']
+        if label in values_with_list_key:
+            value_names = field['value']
+            if value_names:
+                values = ','.join([str(get_id(db, name)) for name in value_names])
+                new_data[values_with_list_key[label]] = values
+            else:
+                new_data[values_with_list_key[label]] = None
+        else:
+            value = field['value']
+            new_data[label] = value
+    return new_data
+
+
+def update_details(id, data, db):
+    try:
+        updated_data = get_updated_data(data, db)
+        person = db.query(Person).filter_by(id=id).first()
+        person_id = person.id
+        update_related_persons(db, person_id, updated_data)
+        person.name = updated_data['Name']
+        person.birth = updated_data['Birthday']
+        person.location = updated_data['Location']
+        person.parents = updated_data['parents']
+        person.spouse = updated_data['spouse']
+        person.siblings = updated_data['siblings']
+        person.children = updated_data['children']
+        db.commit()
+        message = 'success'
+        name = updated_data['Name']
+        return message, name
+    except IntegrityError:
+        db.rollback()
+        message = 'error'
+        name = updated_data['Name']
+        return message, name
