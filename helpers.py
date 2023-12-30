@@ -143,7 +143,7 @@ def update_person_field(db, person_id, field, new_person_id):
     person = db.query(Person).filter_by(id=person_id).first()
     if person:
         existing_ids = getattr(person, field, None)
-        if existing_ids:
+        if existing_ids and new_person_id not in existing_ids.split(','):
             updated_ids = existing_ids + ',' + new_person_id
         else:
             updated_ids = new_person_id
@@ -249,10 +249,10 @@ def get_updated_data(data, db):
     for field in data['fields']:
         label = field['label']
         if label in values_with_list_key:
-            value_names = field['value']
+            value_names = set(field['value'])
             if value_names:
-                values = ','.join([str(get_id(db, name)) for name in value_names])
-                new_data[values_with_list_key[label]] = values
+                values = [str(get_id(db, name)) for name in value_names]
+                new_data[values_with_list_key[label]] = ','.join(values)
             else:
                 new_data[values_with_list_key[label]] = None
         else:
@@ -283,3 +283,27 @@ def update_details(id, data, db):
         message = 'error'
         name = updated_data['Name']
         return message, name
+
+
+def remove_person(id_to_remove, ids, relation, db):
+    if ids:
+        for person_id in ids.split(','):
+            person = db.query(Person).filter_by(id=int(person_id)).first()
+            relation_ids = getattr(person, relation, '')
+            new_relation_ids = [i for i in relation_ids.split(',') if int(i) != id_to_remove]
+            setattr(person, relation, ','.join(new_relation_ids))
+
+
+def remove_person_and_relations(name, db):
+    person = db.query(Person).filter_by(name=name).first()
+    person_id = person.id
+    parents = person.parents
+    remove_person(person_id, parents, 'children', db)
+    spouse = person.spouse
+    remove_person(person_id, spouse, 'spouse', db)
+    siblings = person.siblings
+    remove_person(person_id, siblings, 'siblings', db)
+    children = person.children
+    remove_person(person_id, children, 'parents', db)
+    db.delete(person)
+    db.commit()

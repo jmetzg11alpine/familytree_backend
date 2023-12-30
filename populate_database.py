@@ -1,6 +1,15 @@
 from datetime import date
 from database import SessionLocal, engine
 from models import Person, Photo, Base
+import os
+
+
+def clear_bios():
+    bios_dir = './BIOS'
+    for filename in os.listdir(bios_dir):
+        file_path = os.path.join(bios_dir, filename)
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)
 
 
 def recreate_tables():
@@ -62,6 +71,8 @@ def populate_database():
         print(f'Error: {e}')
     finally:
         session.close()
+
+    clear_bios()
 
 
 if __name__ == '__main__':

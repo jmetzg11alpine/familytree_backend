@@ -57,8 +57,27 @@ async def get_details_to_edit(request: Request, db: Session = Depends(get_db)):
 
 @router.post('/update_details')
 async def update_person_details(request: Request, db: Session = Depends(get_db)):
-    dataRecieved = await request.json()
-    data = dataRecieved.get('data')
-    id = dataRecieved.get('id')
+    data_received = await request.json()
+    data = data_received.get('data')
+    id = data_received.get('id')
     message, name = helpers.update_details(id, data, db)
     return {'message': message, 'name': name}
+
+
+@router.post('/update_bio')
+async def update_bio(request: Request):
+    data_received = await request.json()
+    bio = data_received.get('bio')
+    name = data_received.get('name')
+    file_path = f'./BIOS/{name}.txt'
+    with open(file_path, 'w', encoding='utf-8') as file:
+        file.write(bio)
+    return {'message': 'success'}
+
+
+@router.post('/delete_person')
+async def delete_person(request: Request, db: Session = Depends(get_db)):
+    data_received = await request.json()
+    name = data_received.get('name')
+    helpers.remove_person_and_relations(name, db)
+    return {'message': f'{name} was deleted'}
