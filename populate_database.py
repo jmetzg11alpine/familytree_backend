@@ -12,6 +12,16 @@ def clear_bios():
             os.unlink(file_path)
 
 
+def clear_photos():
+    photo_dir = './PHOTOS'
+    for person_id in os.listdir(photo_dir):
+        person_id_path = os.path.join(photo_dir, person_id)
+        if os.path.isdir(person_id_path):
+            for filename in os.listdir(person_id_path):
+                file_path = os.path.join(person_id_path, filename)
+                os.unlink(file_path)
+
+
 def recreate_tables():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
@@ -41,28 +51,16 @@ def populate_database():
             1968, 10, 12), 'location': 'Moscow, Russia', 'spouse': '8', 'children': '2,6'},
         {'id': 8, 'name': 'Yuriy Volkov', 'x': 23, 'y': 19, 'birth': date(
             1966, 8, 18), 'location': 'Moscow, Russia', 'spouse': '7', 'children': '2,6'},
-        {'id': 9, 'name': 'Nobody One', 'x': 19, 'y': 16, 'birth': date(
-            1922, 4, 22), 'location': 'Los Angeles', },
-        {'id': 10, 'name': 'Nobody Two', 'x': 31, 'y': 25, 'birth': date(
-            2002, 6, 11), 'location': 'Tijuana, Mexicor', }
-    ]
-
-    photo_list = [
-        {'id': 1, 'person_id': 1, 'profile_photo': True, 'path': 'PHOTOS/1/one.png'},
-        {'id': 2, 'person_id': 1, 'profile_photo': False, 'path': 'PHOTOS/1/two.png'},
-        {'id': 3, 'person_id': 1, 'profile_photo': False, 'path': 'PHOTOS/1/three.png'},
-        {'id': 4, 'person_id': 9, 'profile_photo': True, 'path': 'PHOTOS/9/nine.png'},
-        {'id': 5, 'person_id': 10, 'profile_photo': True, 'path': 'PHOTOS/10/ten.png'},
+        {'id': 9, 'name': 'Mioyko Jones', 'x': 17, 'y': 17, 'birth': date(
+            1910, 2, 2), 'location': 'San Diego', 'spouse': '10'},
+        {'id': 10, 'name': 'Howard Jones', 'x': 16, 'y': 17, 'birth': date(
+            1910, 4, 4), 'spouse': '9'}
     ]
 
     try:
-
         for data in people_list:
             person = Person(**data)
             session.add(person)
-        for data in photo_list:
-            photo = Photo(**data)
-            session.add(photo)
         session.commit()
 
         print('Default data inserted')
@@ -73,6 +71,7 @@ def populate_database():
         session.close()
 
     clear_bios()
+    clear_photos()
 
 
 if __name__ == '__main__':

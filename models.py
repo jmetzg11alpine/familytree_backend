@@ -26,3 +26,4 @@ class Photo(Base):
     person_id = Column(Integer)
     profile_photo = Column(Boolean)
     path = Column(String(100))
+    description = Column(String(255))

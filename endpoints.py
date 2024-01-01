@@ -50,8 +50,8 @@ async def add_relative(request: Request, db: Session = Depends(get_db)):
 @router.post('/get_details_to_edit')
 async def get_details_to_edit(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    id = data.get('id')
-    return_data = helpers.get_editable_details(id, db)
+    person_id = data.get('id')
+    return_data = helpers.get_editable_details(person_id, db)
     return return_data
 
 
@@ -59,8 +59,8 @@ async def get_details_to_edit(request: Request, db: Session = Depends(get_db)):
 async def update_person_details(request: Request, db: Session = Depends(get_db)):
     data_received = await request.json()
     data = data_received.get('data')
-    id = data_received.get('id')
-    message, name = helpers.update_details(id, data, db)
+    person_id = data_received.get('id')
+    message, name = helpers.update_details(person_id, data, db)
     return {'message': message, 'name': name}
 
 
@@ -81,3 +81,56 @@ async def delete_person(request: Request, db: Session = Depends(get_db)):
     name = data_received.get('name')
     helpers.remove_person_and_relations(name, db)
     return {'message': f'{name} was deleted'}
+
+
+@router.post('/photos')
+async def get_photos_of_person(request: Request, db: Session = Depends(get_db)):
+    data_recieved = await request.json()
+    person_id = data_recieved.get('id')
+    data, paths = helpers.get_photos(person_id, db)
+    return {'data': data, 'paths': paths}
+
+
+@router.post('/photo')
+async def get_photo_of_person(request: Request, db: Session = Depends(get_db)):
+    data_recieved = await request.json()
+    path = data_recieved.get('path')
+    data = helpers.get_photo(path, db)
+    return {'data': data}
+
+
+@router.post('/profile_photo')
+async def make_profile_photo(request: Request, db: Session = Depends(get_db)):
+    data_recieved = await request.json()
+    person_id = data_recieved.get('person_id')
+    path = data_recieved.get('path')
+    helpers.set_profile_photo(person_id, path, db)
+    return {'message': 'new profile photo set'}
+
+
+@router.post('/update_photo_description')
+async def update_photo_description(request: Request, db: Session = Depends(get_db)):
+    data_recieved = await request.json()
+    description = data_recieved.get('description')
+    path = data_recieved.get('path')
+    helpers.update_description_of_photo(description, path, db)
+    return {'message': 'description updated'}
+
+
+@router.post('/add_photo')
+async def add_photo(request: Request, db: Session = Depends(get_db)):
+    form_data = await request.form()
+    photo = form_data.get('photo')
+    description = form_data.get('description')
+    person_id = form_data.get('person_id')
+    photo_data = await photo.read()
+    helpers.add_new_photo(photo_data, description, person_id, db)
+    return {'message': 'photo added'}
+
+
+@router.post('/delete_photo')
+async def delete_photo(request: Request, db: Session = Depends(get_db)):
+    data_recieved = await request.json()
+    path = data_recieved.get('path')
+    helpers.delete_one_photo(path, db)
+    return {'message': 'photo deleted'}

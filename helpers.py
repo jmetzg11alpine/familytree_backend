@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 import os
 import base64
 from datetime import datetime
+import time
 
 
 def update_coor_range(x, y, coor_range):
@@ -113,19 +114,19 @@ def search_potential_relatives(minX, maxX, minY, maxY, db, id):
 
 
 def find_parents(x, y, db, id):
-    return search_potential_relatives(x-6, x+6, y-4, y, db, id)
+    return search_potential_relatives(x-8, x+8, y-4, y, db, id)
 
 
 def find_siblings(x, y, db, id):
-    return search_potential_relatives(x-6, x+6, y-1, y+1, db, id)
+    return search_potential_relatives(x-8, x+8, y-2, y+2, db, id)
 
 
 def find_children(x, y, db, id):
-    return search_potential_relatives(x-6, x+6, y, y+4, db, id)
+    return search_potential_relatives(x-8, x+8, y, y+4, db, id)
 
 
 def find_spouses(x, y, db, id):
-    return search_potential_relatives(x-4, x+4, y-1, y+1, db, id)
+    return search_potential_relatives(x-4, x+4, y-2, y+2, db, id)
 
 
 def find_potential_relatives(db, coor, id):
@@ -222,25 +223,28 @@ def get_values_and_options(person, db, field, potential_relatives, data):
 
 def get_editable_details(id, db):
     person = db.query(Person).filter_by(id=id).first()
-    person_id = person.id
-    x, y = str(person.x), str(person.y)
-    potential_relatives = find_potential_relatives(db, x+'<>'+y, person_id)
-    name = person.name
-    birth = person.birth
-    location = person.location
-    data = {}
-    for field in ['parents', 'siblings', 'children', 'spouses']:
-        get_values_and_options(person, db, field, potential_relatives, data)
+    if person:
+        person_id = person.id
+        x, y = str(person.x), str(person.y)
+        potential_relatives = find_potential_relatives(db, x+'<>'+y, person_id)
+        name = person.name
+        birth = person.birth
+        location = person.location
+        data = {}
+        for field in ['parents', 'siblings', 'children', 'spouses']:
+            get_values_and_options(person, db, field, potential_relatives, data)
 
-    return {'fields': [
-        {'label': 'Name', 'type': 'text', 'value': name, 'multiple': False},
-        {'label': 'Birthday', 'type': 'date', 'value': birth, 'multiple': False},
-        {'label': 'Location', 'type': 'text', 'value': location, 'multiple': False},
-        {'label': 'Parents', 'options': data['parents']['options'], 'value': data['parents']['values'], 'multiple': True},
-        {'label': 'Siblings', 'options': data['siblings']['options'], 'value': data['siblings']['values'], 'multiple': True},
-        {'label': 'Children', 'options': data['children']['options'], 'value': data['children']['values'], 'multiple': True},
-        {'label': 'Spouse', 'options': data['spouses']['options'], 'value': data['spouses']['values'], 'multiple': True}
-        ]}
+        return {'fields': [
+            {'label': 'Name', 'type': 'text', 'value': name, 'multiple': False},
+            {'label': 'Birthday', 'type': 'date', 'value': birth, 'multiple': False},
+            {'label': 'Location', 'type': 'text', 'value': location, 'multiple': False},
+            {'label': 'Parents', 'options': data['parents']['options'], 'value': data['parents']['values'], 'multiple': True},
+            {'label': 'Siblings', 'options': data['siblings']['options'], 'value': data['siblings']['values'], 'multiple': True},
+            {'label': 'Children', 'options': data['children']['options'], 'value': data['children']['values'], 'multiple': True},
+            {'label': 'Spouse', 'options': data['spouses']['options'], 'value': data['spouses']['values'], 'multiple': True}
+            ]}
+    else:
+        return {}
 
 
 def get_updated_data(data, db):
@@ -307,3 +311,72 @@ def remove_person_and_relations(name, db):
     remove_person(person_id, children, 'parents', db)
     db.delete(person)
     db.commit()
+
+
+def get_photos(person_id, db):
+    photos = db.query(Photo).filter(Photo.person_id == person_id).all()
+    data = {'current': '', 'description': ''}
+    paths = []
+    for photo in photos:
+        if photo.profile_photo:
+            with open(photo.path, 'rb') as image_file:
+                data['current'] = base64.b64encode(image_file.read()).decode('utf-8')
+            data['description'] = photo.description
+        paths.append(photo.path)
+    return data, paths
+
+
+def get_photo(path, db):
+    photo = db.query(Photo).filter(Photo.path == path).first()
+    if photo:
+        data = {}
+        data['profile_photo'] = photo.profile_photo
+        data['description'] = photo.description
+        with open(photo.path, 'rb') as image_file:
+            data['current'] = base64.b64encode(image_file.read()).decode('utf-8')
+        return data
+    else:
+        return {'profile_photo': 0, 'description': '', 'current': ''}
+
+
+def set_profile_photo(person_id, path, db):
+    original_profile = db.query(Photo).filter(and_(Photo.person_id == person_id, Photo.profile_photo == 1)).first()
+    new_profile = db.query(Photo).filter(and_(Photo.person_id == person_id, Photo.path == path)).first()
+    original_profile.profile_photo = 0
+    new_profile.profile_photo = 1
+    db.commit()
+
+
+def update_description_of_photo(description, path, db):
+    photo = db.query(Photo).filter(Photo.path == path).first()
+    photo.description = description
+    db.commit()
+
+
+def add_new_photo(photo_data, description, person_id, db):
+    directory = f'PHOTOS/{str(person_id)}'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    path = directory + '/' + str(time.time()).split('.')[0] + '.png'
+    with open(path, 'wb') as file:
+        file.write(photo_data)
+    person_has_photo = db.query(Photo).filter_by(person_id=person_id).first()
+    profile_photo = 1 if person_has_photo is None else 0
+    new_photo = Photo(person_id=person_id, profile_photo=profile_photo, path=path, description=description,)
+    db.add(new_photo)
+    db.commit()
+
+
+def delete_one_photo(path, db):
+    photo = db.query(Photo).filter_by(path=path).first()
+    if photo:
+        is_profile = photo.profile_photo
+        person_id = photo.person_id
+        if is_profile:
+            new_profile_photo = db.query(Photo).filter_by(person_id=person_id).filter(Photo.id != photo.id).first()
+            if new_profile_photo:
+                new_profile_photo.profile_photo = True
+                db.add(new_profile_photo)
+        os.remove(path)
+        db.delete(photo)
+        db.commit()
