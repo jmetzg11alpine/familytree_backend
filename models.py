@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Boolean, Integer, String, Date
+from sqlalchemy import Column, Boolean, Integer, Float, String, Date
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 
@@ -18,6 +18,8 @@ class Person(Base):
     spouse = Column(String(40))
     siblings = Column(String(40))
     children = Column(String(40))
+    lat = Column(Float)
+    lng = Column(Float)
 
 
 class Photo(Base):

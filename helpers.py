@@ -1,10 +1,11 @@
 from models import Person, Photo
-from sqlalchemy import and_
+from sqlalchemy import and_, not_, or_
 from sqlalchemy.exc import IntegrityError
 import os
 import base64
 from datetime import datetime
 import time
+from collections import defaultdict
 
 
 def update_coor_range(x, y, coor_range):
@@ -100,7 +101,7 @@ def get_person_details(db, id):
     profile_photo = get_profile_photo(db, id)
     return {'name': person.name, 'id': person.id, 'birth': person.birth, 'location': person.location, 'parents': check_null_list(parents_list),
             'children': check_null_list(children_list), 'spouse': check_null_list(spouse_list), 'siblings': check_null_list(siblings_list),
-            'bio': bio, 'profile_photo': profile_photo}
+            'bio': bio, 'profile_photo': profile_photo, 'lat': person.lat, 'lng': person.lng}
 
 
 def search_potential_relatives(minX, maxX, minY, maxY, db, id):
@@ -175,6 +176,10 @@ def add_new_relative(formData, squareCoor, db):
             data['name'] = info['value']
         elif info['label'] == 'Location':
             data['location'] = info['value']
+        elif info['label'] == 'Latitude':
+            data['lat'] = info['value']
+        elif info['label'] == 'Longitude':
+            data['lng'] = info['value']
         elif info['label'] == 'Birthday':
             if (info['value']):
                 birth = datetime.strptime(info['value'], '%Y-%m-%d').date()
@@ -227,17 +232,16 @@ def get_editable_details(id, db):
         person_id = person.id
         x, y = str(person.x), str(person.y)
         potential_relatives = find_potential_relatives(db, x+'<>'+y, person_id)
-        name = person.name
-        birth = person.birth
-        location = person.location
         data = {}
         for field in ['parents', 'siblings', 'children', 'spouses']:
             get_values_and_options(person, db, field, potential_relatives, data)
 
         return {'fields': [
-            {'label': 'Name', 'type': 'text', 'value': name, 'multiple': False},
-            {'label': 'Birthday', 'type': 'date', 'value': birth, 'multiple': False},
-            {'label': 'Location', 'type': 'text', 'value': location, 'multiple': False},
+            {'label': 'Name', 'type': 'text', 'value': person.name, 'multiple': False},
+            {'label': 'Birthday', 'type': 'date', 'value': person.birth, 'multiple': False},
+            {'label': 'Location', 'type': 'text', 'value': person.location, 'multiple': False},
+            {'label': 'Latitude', 'type': 'text', 'value': str(person.lat), 'multiple': False},
+            {'label': 'Longitude', 'type': 'text', 'value': str(person.lng), 'multiple': False},
             {'label': 'Parents', 'options': data['parents']['options'], 'value': data['parents']['values'], 'multiple': True},
             {'label': 'Siblings', 'options': data['siblings']['options'], 'value': data['siblings']['values'], 'multiple': True},
             {'label': 'Children', 'options': data['children']['options'], 'value': data['children']['values'], 'multiple': True},
@@ -249,6 +253,7 @@ def get_editable_details(id, db):
 
 def get_updated_data(data, db):
     values_with_list_key = {'Parents': 'parents', 'Siblings': 'siblings', 'Children': 'children', 'Spouse': 'spouse'}
+    float_key = {'Latitude', 'Longitude'}
     new_data = {}
     for field in data['fields']:
         label = field['label']
@@ -259,6 +264,8 @@ def get_updated_data(data, db):
                 new_data[values_with_list_key[label]] = ','.join(values)
             else:
                 new_data[values_with_list_key[label]] = None
+        elif label in float_key:
+            new_data[label] = float(field['value'])
         else:
             value = field['value']
             new_data[label] = value
@@ -274,6 +281,8 @@ def update_details(id, data, db):
         person.name = updated_data['Name']
         person.birth = updated_data['Birthday']
         person.location = updated_data['Location']
+        person.lat = updated_data['Latitude']
+        person.lng = updated_data['Longitude']
         person.parents = updated_data['parents']
         person.spouse = updated_data['spouse']
         person.siblings = updated_data['siblings']
@@ -380,3 +389,19 @@ def delete_one_photo(path, db):
         os.remove(path)
         db.delete(photo)
         db.commit()
+
+
+def get_all_coor(db):
+    data = defaultdict(lambda: {'name': '', 'location': '', 'size': 0, 'coor': {}})
+    people = db.query(Person.name, Person.location, Person.lat, Person.lng).filter(not_(or_(Person.lat == None, Person.lng == None))).all()
+    for person in people:
+        coor_key = f'{person.lat},{person.lng}'
+        if data[coor_key]['size'] > 0:
+            data[coor_key]['name'] += ', ' + person.name
+        else:
+            data[coor_key]['name'] = person.name
+            data[coor_key]['location'] = person.location
+            data[coor_key]['coor'] = {'lat': person.lat, 'lng': person.lng}
+        data[coor_key]['size'] += 1
+    formatted_data = list(data.values())
+    return formatted_data

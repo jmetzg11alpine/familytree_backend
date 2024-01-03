@@ -134,3 +134,9 @@ async def delete_photo(request: Request, db: Session = Depends(get_db)):
     path = data_recieved.get('path')
     helpers.delete_one_photo(path, db)
     return {'message': 'photo deleted'}
+
+
+@router.get('/get_coor')
+def get_coor(db: Session = Depends(get_db)):
+    data = helpers.get_all_coor(db)
+    return data
