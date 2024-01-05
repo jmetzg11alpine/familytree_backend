@@ -1,4 +1,4 @@
-from models import Person, Photo
+from models import Person, Photo, User, History
 from sqlalchemy import and_, not_, or_
 from sqlalchemy.exc import IntegrityError
 import os
@@ -168,34 +168,22 @@ def update_related_persons(db, person_id, data):
 
 def add_new_relative(formData, squareCoor, db):
     data = {}
-    coor = squareCoor.split('<>')
-    x, y = coor[0], coor[1]
-    data['x'], data['y'] = x, y
+    x, y = squareCoor.split('<>')
+    data['x'], data['y'] = int(x), int(y)
+    label_to_key = {'Name': 'name', 'Location': 'location', 'Latitude': 'lat',
+                    'Longitude': 'lng', 'Birthday': 'birth', 'Parents': 'parents',
+                    'Siblings': 'siblings', 'Children': 'children', 'Spouse': 'spouse'}
     for info in formData['fields']:
-        if info['label'] == 'Name':
-            data['name'] = info['value']
-        elif info['label'] == 'Location':
-            data['location'] = info['value']
-        elif info['label'] == 'Latitude':
-            data['lat'] = info['value']
-        elif info['label'] == 'Longitude':
-            data['lng'] = info['value']
-        elif info['label'] == 'Birthday':
-            if (info['value']):
-                birth = datetime.strptime(info['value'], '%Y-%m-%d').date()
-                data['birth'] = birth
-        elif info['label'] == 'Parents':
-            parent_ids = ','.join([str(get_id(db, person)) for person in info['value']])
-            data['parents'] = parent_ids
-        elif info['label'] == 'Siblings':
-            sibling_ids = ','.join([str(get_id(db, person)) for person in info['value']])
-            data['siblings'] = sibling_ids
-        elif info['label'] == 'Children':
-            children_ids = ','.join([str(get_id(db, person)) for person in info['value']])
-            data['children'] = children_ids
-        elif info['label'] == 'Spouse':
-            spouse_ids = ','.join([str(get_id(db, person)) for person in info['value']])
-            data['spouse'] = spouse_ids
+        key = label_to_key.get(info['label'])
+        value = info['value']
+        if key in ['lat', 'lng']:
+            data[key] = float(value) if value else None
+        elif key == 'birth' and value:
+            data[key] = datetime.strptime(info['value'], '%Y-%m-%d').date()
+        elif key in ['parents', 'siblings', 'children', 'spouse'] and value:
+            data[key] = ','.join([str(get_id(db, person)) for person in value])
+        elif key in ['name', 'location']:
+            data[key] = value
 
     try:
         person = Person(**data)
@@ -265,7 +253,10 @@ def get_updated_data(data, db):
             else:
                 new_data[values_with_list_key[label]] = None
         elif label in float_key:
-            new_data[label] = float(field['value'])
+            try:
+                new_data[label] = float(field['value'])
+            except ValueError:
+                new_data[label] = None
         else:
             value = field['value']
             new_data[label] = value
@@ -291,7 +282,7 @@ def update_details(id, data, db):
         message = 'success'
         name = updated_data['Name']
         return message, name
-    except IntegrityError:
+    except:
         db.rollback()
         message = 'error'
         name = updated_data['Name']
@@ -358,8 +349,12 @@ def set_profile_photo(person_id, path, db):
 
 def update_description_of_photo(description, path, db):
     photo = db.query(Photo).filter(Photo.path == path).first()
-    photo.description = description
-    db.commit()
+    old_description = photo.description
+    if old_description != description:
+        photo.description = description
+        db.commit()
+        return 'updated'
+    return 'not updated'
 
 
 def add_new_photo(photo_data, description, person_id, db):
@@ -371,7 +366,7 @@ def add_new_photo(photo_data, description, person_id, db):
         file.write(photo_data)
     person_has_photo = db.query(Photo).filter_by(person_id=person_id).first()
     profile_photo = 1 if person_has_photo is None else 0
-    new_photo = Photo(person_id=person_id, profile_photo=profile_photo, path=path, description=description,)
+    new_photo = Photo(person_id=person_id, profile_photo=profile_photo, path=path, description=description)
     db.add(new_photo)
     db.commit()
 
@@ -405,3 +400,18 @@ def get_all_coor(db):
         data[coor_key]['size'] += 1
     formatted_data = list(data.values())
     return formatted_data
+
+
+def login_user(username, password, db):
+    try:
+        username, password = username.strip(), password.strip()
+        user = db.query(User).filter_by(username=username).first()
+        return user.username == username and user.password == password
+    except:
+        return False
+
+
+def record_action(current_user, action, name, db):
+    history = History(username=current_user, action=action, recipient=name)
+    db.add(history)
+    db.commit()

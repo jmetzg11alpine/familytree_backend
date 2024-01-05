@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Boolean, Integer, Float, String, Date
+from sqlalchemy import Column, Boolean, Integer, Float, String, Date, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 
@@ -18,8 +18,8 @@ class Person(Base):
     spouse = Column(String(40))
     siblings = Column(String(40))
     children = Column(String(40))
-    lat = Column(Float)
-    lng = Column(Float)
+    lat = Column(Float, default=None)
+    lng = Column(Float, default=None)
 
 
 class Photo(Base):
@@ -29,3 +29,19 @@ class Photo(Base):
     profile_photo = Column(Boolean)
     path = Column(String(100))
     description = Column(String(255))
+
+
+class User(Base):
+    __tablename__ = 'user'
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    username = Column(String(100))
+    password = Column(String(100))
+
+
+class History(Base):
+    __tablename__ = 'history'
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    created_at = Column(DateTime, default=func.now())
+    username = Column(String(100))
+    action = Column(String(100))
+    recipient = Column(String(100))

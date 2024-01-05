@@ -2,10 +2,14 @@ from urllib.parse import quote
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
-password = quote("P@ssw0rd")
+password = os.getenv('DATABASE_PASSWORD')
+password_quoted = quote(password.encode('utf-8'))
+DATABASE_URL = os.getenv('DATABASE_URL').replace("<password>", password_quoted)
 
-DATABASE_URL = f"mysql+mysqlconnector://root:{password}@localhost/seemyfamily"
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

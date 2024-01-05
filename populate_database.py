@@ -1,6 +1,6 @@
 from datetime import date
 from database import SessionLocal, engine
-from models import Person, Photo, Base
+from models import Person, Photo, User, History, Base
 import os
 
 
@@ -33,6 +33,7 @@ def populate_database():
 
     session.query(Person).delete()
     session.query(Photo).delete()
+    session.query(History).delete()
 
     people_list = [
         {'id': 1, 'name': 'Jesse Metzger', 'x': 20, 'y': 21, 'birth': date(
@@ -60,17 +61,29 @@ def populate_database():
             1966, 8, 18), 'location': 'Moscow, Russia', 'spouse': '7', 'children': '2,6',
             'lat': 55.7558, 'lng': 37.6173},
         {'id': 9, 'name': 'Mioyko Jones', 'x': 17, 'y': 17, 'birth': date(
-            1910, 2, 2), 'location': 'San Diego', 'spouse': '10',
+            1910, 2, 2), 'location': 'San Diego', 'spouse': '10', 'children': '3',
             'lat': 32.7448, 'lng': -116.9989},
         {'id': 10, 'name': 'Howard Jones', 'x': 16, 'y': 17, 'birth': date(
-            1910, 4, 4), 'spouse': '9',
+            1910, 4, 4), 'location': 'San Diego', 'spouse': '9', 'children': '3',
             'lat': 32.7448, 'lng': -116.9989}
+    ]
+
+    user_list = [
+        {'username': 'Helen Metzger', 'password': 'mother'},
+        {'username': 'Jesse Metzger', 'password': 'jesse'},
+        {'username': 'Jennifer Metzger', 'password': 'sister'},
+        {'username': 'Ellina Metzger', 'password': 'wife'}
     ]
 
     try:
         for data in people_list:
             person = Person(**data)
             session.add(person)
+        for data in user_list:
+            user = User(**data)
+            session.add(user)
+        history = History(username='Jesse Metzger', action='Project Started', recipient='General')
+        session.add(history)
         session.commit()
 
         print('Default data inserted')

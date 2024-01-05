@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal
 import helpers
 router = APIRouter()
+import os
 
 
 def get_db():
@@ -44,6 +45,9 @@ async def add_relative(request: Request, db: Session = Depends(get_db)):
     squareCoor = data.get('squareCoor')
     formData = data.get('formData')
     message, name = helpers.add_new_relative(formData, squareCoor, db)
+    if message == 'success':
+        current_user = data.get('currentUser')
+        helpers.record_action(current_user, 'created', name, db)
     return {'message': message, 'name': name}
 
 
@@ -61,25 +65,41 @@ async def update_person_details(request: Request, db: Session = Depends(get_db))
     data = data_received.get('data')
     person_id = data_received.get('id')
     message, name = helpers.update_details(person_id, data, db)
+    if message == 'success':
+        current_user = data_received.get('currentUser')
+        recipient_name = helpers.get_name(db, person_id)
+        helpers.record_action(current_user, 'edited profile', recipient_name, db)
     return {'message': message, 'name': name}
 
 
 @router.post('/update_bio')
-async def update_bio(request: Request):
+async def update_bio(request: Request, db: Session = Depends(get_db)):
     data_received = await request.json()
     bio = data_received.get('bio')
     name = data_received.get('name')
     file_path = f'./BIOS/{name}.txt'
-    with open(file_path, 'w', encoding='utf-8') as file:
-        file.write(bio)
+
+    if os.path.exists(file_path):
+        with open(file_path, 'r', encoding='utf-8') as file:
+            current_bio = file.read()
+    else:
+        current_bio = ''
+
+    if bio and bio != current_bio:
+        current_user = data_received.get('currentUser')
+        helpers.record_action(current_user, 'edited bio', name, db)
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.write(bio)
     return {'message': 'success'}
 
 
 @router.post('/delete_person')
 async def delete_person(request: Request, db: Session = Depends(get_db)):
-    data_received = await request.json()
-    name = data_received.get('name')
+    data = await request.json()
+    name = data.get('name')
     helpers.remove_person_and_relations(name, db)
+    current_user = data.get('currentUser')
+    helpers.record_action(current_user, 'deleted', name, db)
     return {'message': f'{name} was deleted'}
 
 
@@ -103,8 +123,11 @@ async def get_photo_of_person(request: Request, db: Session = Depends(get_db)):
 async def make_profile_photo(request: Request, db: Session = Depends(get_db)):
     data_recieved = await request.json()
     person_id = data_recieved.get('person_id')
+    person_name = helpers.get_name(db, person_id)
     path = data_recieved.get('path')
+    current_user = data_recieved.get('currentUser')
     helpers.set_profile_photo(person_id, path, db)
+    helpers.record_action(current_user, 'set profile pic', person_name, db)
     return {'message': 'new profile photo set'}
 
 
@@ -113,7 +136,11 @@ async def update_photo_description(request: Request, db: Session = Depends(get_d
     data_recieved = await request.json()
     description = data_recieved.get('description')
     path = data_recieved.get('path')
-    helpers.update_description_of_photo(description, path, db)
+    results = helpers.update_description_of_photo(description, path, db)
+    if results == 'updated':
+        person_name = data_recieved.get('person_name')
+        current_user = data_recieved.get('currentUser')
+        helpers.record_action(current_user, 'photo description updated', person_name, db)
     return {'message': 'description updated'}
 
 
@@ -123,8 +150,11 @@ async def add_photo(request: Request, db: Session = Depends(get_db)):
     photo = form_data.get('photo')
     description = form_data.get('description')
     person_id = form_data.get('person_id')
+    person_name = helpers.get_name(db, person_id)
+    current_user = form_data.get('current_user')
     photo_data = await photo.read()
     helpers.add_new_photo(photo_data, description, person_id, db)
+    helpers.record_action(current_user, 'added photo', person_name, db)
     return {'message': 'photo added'}
 
 
@@ -132,7 +162,11 @@ async def add_photo(request: Request, db: Session = Depends(get_db)):
 async def delete_photo(request: Request, db: Session = Depends(get_db)):
     data_recieved = await request.json()
     path = data_recieved.get('path')
+    person_id = data_recieved.get('person_id')
+    person_name = helpers.get_name(db, person_id)
+    current_user = data_recieved.get('currentUser')
     helpers.delete_one_photo(path, db)
+    helpers.record_action(current_user, 'deleted photo', person_name, db)
     return {'message': 'photo deleted'}
 
 
@@ -140,3 +174,12 @@ async def delete_photo(request: Request, db: Session = Depends(get_db)):
 def get_coor(db: Session = Depends(get_db)):
     data = helpers.get_all_coor(db)
     return data
+
+
+@router.post('/login')
+async def login(request: Request, db: Session = Depends(get_db)):
+    data_recieved = await request.json()
+    username = data_recieved.get('username')
+    password = data_recieved.get('password')
+    response = helpers.login_user(username, password, db)
+    return {'message': response}
