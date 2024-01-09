@@ -1,11 +1,21 @@
-from models import Person, Photo, User, History
+from models import Person, Photo, User, History, Visitor
 from sqlalchemy import and_, not_, or_
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.sql import func
 import os
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 from collections import defaultdict
+
+
+def record_visitor(client_ip, db):
+    current_date = datetime.now().date()
+    visitor = db.query(Visitor).filter(Visitor.ip_address == client_ip, func.date(Visitor.date) == current_date).first()
+    if not visitor:
+        new_visitor = Visitor(ip_address=client_ip, date=current_date)
+        db.add(new_visitor)
+        db.commit()
 
 
 def update_coor_range(x, y, coor_range):
@@ -294,8 +304,11 @@ def remove_person(id_to_remove, ids, relation, db):
         for person_id in ids.split(','):
             person = db.query(Person).filter_by(id=int(person_id)).first()
             relation_ids = getattr(person, relation, '')
-            new_relation_ids = [i for i in relation_ids.split(',') if int(i) != id_to_remove]
-            setattr(person, relation, ','.join(new_relation_ids))
+            if relation_ids and ',' in relation_ids:
+                new_relation_ids = [i for i in relation_ids.split(',') if int(i) != id_to_remove]
+                setattr(person, relation, ','.join(new_relation_ids))
+            elif relation_ids:
+                setattr(person, relation, '')
 
 
 def remove_person_and_relations(name, db):
@@ -415,3 +428,80 @@ def record_action(current_user, action, name, db):
     history = History(username=current_user, action=action, recipient=name)
     db.add(history)
     db.commit()
+
+
+def get_info(db):
+    counts = {}
+    table = []
+    actions = db.query(History).all()
+    for action in actions:
+        user = action.username
+        if user in counts:
+            counts[user] += 1
+        else:
+            counts[user] = 1
+        table.append({'created_at': action.created_at, 'username': action.username, 'action': action.action, 'recipient': action.recipient})
+    edits = [{'name': user, 'count': count} for user, count in counts.items()]
+    sorted_edits = sorted(edits, key=lambda x: x['count'], reverse=True)
+    sorted_table = sorted(table, key=lambda x: x['created_at'], reverse=True)
+    return sorted_edits, sorted_table
+
+
+def query_visitors(time_range, today, db):
+    if time_range == 'week':
+        start_date = today - timedelta(days=7)
+    elif time_range == 'month':
+        start_date = today - timedelta(days=30)
+    else:
+        return db.query(Visitor).order_by(Visitor.date).all()
+    return db.query(Visitor).filter(Visitor.date >= start_date).order_by(Visitor.date).all()
+
+
+def group_by_day(visitors, today):
+    days_of_week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    current_day_index = days_of_week.index(today.strftime('%a'))
+    ordered_days = days_of_week[current_day_index+1:] + days_of_week[:current_day_index+1]
+    counts = defaultdict(int, {day: 0 for day in days_of_week})
+    for visitor in visitors:
+        day = visitor.date.strftime('%a')
+        counts[day] += 1
+    return [{'date': day, 'count': counts[day]} for day in ordered_days]
+
+
+def group_by_week(visitors, today):
+    if not visitors:
+        return []
+    earliest_date = min(visitor.date for visitor in visitors)
+    latest_date = max(visitor.date for visitor in visitors)
+    current = earliest_date - timedelta(days=earliest_date.weekday())
+    end = latest_date - timedelta(days=latest_date.weekday())
+    weeks = []
+    while current <= end:
+        weeks.append(current.strftime('%b-%d'))
+        current += timedelta(days=7)
+    counts = defaultdict(int, {week: 0 for week in weeks})
+    for visitor in visitors:
+        weekday = visitor.date.weekday()
+        week_start = visitor.date - timedelta(days=weekday)
+        week_start_str = week_start.strftime('%b-%d')
+        counts[week_start_str] += 1
+    return [{'date': week, 'count': count} for week, count in counts.items()]
+
+
+def group_by_month(visitors):
+    counts = defaultdict(int)
+    for visitor in visitors:
+        month_year = visitor.date.strftime("%b-%Y")
+        counts[month_year] += 1
+    return [{"date": month_year, "count": count} for month_year, count in counts.items()]
+
+
+def calculate_visitors(time_range, db):
+    today = datetime.now().date()
+    visitors = query_visitors(time_range, today, db)
+    if time_range == 'week':
+        return group_by_day(visitors, today)
+    elif time_range == 'month':
+        return group_by_week(visitors, today)
+    else:
+        return group_by_month(visitors)

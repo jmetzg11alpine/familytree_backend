@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from database import SessionLocal
 import helpers
-router = APIRouter()
 import os
+router = APIRouter()
 
 
 def get_db():
@@ -20,8 +20,10 @@ def read_root():
 
 
 @router.get('/get_people')
-def get_people(db: Session = Depends(get_db)):
+def get_people(request: Request, db: Session = Depends(get_db)):
     name_key, coor_key, coor_range = helpers.get_all_people(db)
+    client_ip = request.client.host
+    helpers.record_visitor(client_ip, db)
     return {'name_key': name_key, 'coor_key': coor_key, 'coor_range': coor_range}
 
 
@@ -105,27 +107,27 @@ async def delete_person(request: Request, db: Session = Depends(get_db)):
 
 @router.post('/photos')
 async def get_photos_of_person(request: Request, db: Session = Depends(get_db)):
-    data_recieved = await request.json()
-    person_id = data_recieved.get('id')
+    data_received = await request.json()
+    person_id = data_received.get('id')
     data, paths = helpers.get_photos(person_id, db)
     return {'data': data, 'paths': paths}
 
 
 @router.post('/photo')
 async def get_photo_of_person(request: Request, db: Session = Depends(get_db)):
-    data_recieved = await request.json()
-    path = data_recieved.get('path')
+    data_received = await request.json()
+    path = data_received.get('path')
     data = helpers.get_photo(path, db)
     return {'data': data}
 
 
 @router.post('/profile_photo')
 async def make_profile_photo(request: Request, db: Session = Depends(get_db)):
-    data_recieved = await request.json()
-    person_id = data_recieved.get('person_id')
+    data_received = await request.json()
+    person_id = data_received.get('person_id')
     person_name = helpers.get_name(db, person_id)
-    path = data_recieved.get('path')
-    current_user = data_recieved.get('currentUser')
+    path = data_received.get('path')
+    current_user = data_received.get('currentUser')
     helpers.set_profile_photo(person_id, path, db)
     helpers.record_action(current_user, 'set profile pic', person_name, db)
     return {'message': 'new profile photo set'}
@@ -133,13 +135,13 @@ async def make_profile_photo(request: Request, db: Session = Depends(get_db)):
 
 @router.post('/update_photo_description')
 async def update_photo_description(request: Request, db: Session = Depends(get_db)):
-    data_recieved = await request.json()
-    description = data_recieved.get('description')
-    path = data_recieved.get('path')
+    data_received = await request.json()
+    description = data_received.get('description')
+    path = data_received.get('path')
     results = helpers.update_description_of_photo(description, path, db)
     if results == 'updated':
-        person_name = data_recieved.get('person_name')
-        current_user = data_recieved.get('currentUser')
+        person_name = data_received.get('person_name')
+        current_user = data_received.get('currentUser')
         helpers.record_action(current_user, 'photo description updated', person_name, db)
     return {'message': 'description updated'}
 
@@ -160,11 +162,11 @@ async def add_photo(request: Request, db: Session = Depends(get_db)):
 
 @router.post('/delete_photo')
 async def delete_photo(request: Request, db: Session = Depends(get_db)):
-    data_recieved = await request.json()
-    path = data_recieved.get('path')
-    person_id = data_recieved.get('person_id')
+    data_received = await request.json()
+    path = data_received.get('path')
+    person_id = data_received.get('person_id')
     person_name = helpers.get_name(db, person_id)
-    current_user = data_recieved.get('currentUser')
+    current_user = data_received.get('currentUser')
     helpers.delete_one_photo(path, db)
     helpers.record_action(current_user, 'deleted photo', person_name, db)
     return {'message': 'photo deleted'}
@@ -178,8 +180,22 @@ def get_coor(db: Session = Depends(get_db)):
 
 @router.post('/login')
 async def login(request: Request, db: Session = Depends(get_db)):
-    data_recieved = await request.json()
-    username = data_recieved.get('username')
-    password = data_recieved.get('password')
+    data_received = await request.json()
+    username = data_received.get('username')
+    password = data_received.get('password')
     response = helpers.login_user(username, password, db)
     return {'message': response}
+
+
+@router.get('/get_info')
+async def get_edits_and_table(db: Session = Depends(get_db)):
+    edits, table = helpers.get_info(db)
+    return {'edits': edits, 'table': table}
+
+
+@router.post('/get_visitors')
+async def get_visitors(request: Request, db: Session = Depends(get_db)):
+    data_received = await request.json()
+    time_range = data_received.get('timeRange')
+    visitors = helpers.calculate_visitors(time_range, db)
+    return visitors
