@@ -480,20 +480,23 @@ def group_by_week(visitors, today):
         weeks.append(current.strftime('%b-%d'))
         current += timedelta(days=7)
     counts = defaultdict(int, {week: 0 for week in weeks})
+    tracker = defaultdict(set)
     for visitor in visitors:
         weekday = visitor.date.weekday()
         week_start = visitor.date - timedelta(days=weekday)
         week_start_str = week_start.strftime('%b-%d')
-        counts[week_start_str] += 1
+        if visitor.ip_address not in tracker[week_start_str]:
+            counts[week_start_str] += 1
+            tracker[week_start_str].add(visitor.ip_address)
     return [{'date': week, 'count': count} for week, count in counts.items()]
 
 
 def group_by_month(visitors):
-    counts = defaultdict(int)
+    unique_visits = defaultdict(set)
     for visitor in visitors:
         month_year = visitor.date.strftime("%b-%Y")
-        counts[month_year] += 1
-    return [{"date": month_year, "count": count} for month_year, count in counts.items()]
+        unique_visits[month_year].add(visitor.ip_address)
+    return [{"date": month_year, "count": len(ips)} for month_year, ips in unique_visits.items()]
 
 
 def calculate_visitors(time_range, db):

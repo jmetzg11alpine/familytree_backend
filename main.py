@@ -17,15 +17,11 @@ app.add_middleware(
 )
 
 
-key = '/etc/nginx/fastapi-ssl/key.pem'
-cert = '/etc/nginx/fastapi-ssl/cert.pem'
-
-
 def run_server(production):
     if production:
         print('running production')
         uvicorn.run("main:app", host='0.0.0.0', port=8000,
-                    ssl_keyfile=key, ssl_certfile=cert, reload=True)
+                    ssl_keyfile='', ssl_certfile='', reload=True)
     else:
         print('running development')
         uvicorn.run("main:app", host='0.0.0.0', port=8000, reload=True)
