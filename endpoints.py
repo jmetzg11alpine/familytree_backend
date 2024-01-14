@@ -189,8 +189,8 @@ async def login(request: Request, db: Session = Depends(get_db)):
 
 @router.get('/get_info')
 async def get_edits_and_table(db: Session = Depends(get_db)):
-    edits, table = helpers.get_info(db)
-    return {'edits': edits, 'table': table}
+    edits, table, url = helpers.get_info(db)
+    return {'edits': edits, 'table': table, 'url': url}
 
 
 @router.post('/get_visitors')

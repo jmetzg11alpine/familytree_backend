@@ -1,6 +1,0 @@
-production:
-    python main.py --production
-
-development:
-    python main.py
-

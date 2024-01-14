@@ -8,34 +8,47 @@ import os
 people_list = [
     {'id': 1, 'name': 'Jesse Metzger', 'x': 20, 'y': 21, 'birth': datetime.date(
         1989, 1, 17), 'location': 'Nashville ,TN', 'parents': '3,5', 'spouse': '2', 'siblings': '4',
-        'lat': 36.1627, 'lng': -86.7816},
+        'lat': 36.16, 'lng': -86.78},
     {'id': 2, 'name': 'Ellina Metzger', 'x': 21, 'y': 21, 'birth': datetime.date(
         1991, 5, 5), 'location': 'Nashville, TN', 'parents': '7,8', 'spouse': '1', 'siblings': '6',
-        'lat': 36.1627, 'lng': -86.7816},
+        'lat': 36.16, 'lng': -86.78},
     {'id': 3, 'name': 'Helen Metzger', 'x': 18, 'y': 19, 'birth': datetime.date(
-        1959, 1, 13), 'location': 'San Diego, CA', 'spouse': '5', 'children': '1,4',
-        'lat': 32.8351, 'lng': -116.7664},
-    {'id': 4, 'name': 'Jennifer Metzger', 'x': 17, 'y': 21, 'birth': datetime.date(
+        1959, 1, 1), 'location': 'San Diego, CA', 'spouse': '5', 'children': '1,4',
+        'lat': 32.83, 'lng': -116.76},
+    {'id': 4, 'name': 'Jennifer Metzger', 'x': 16, 'y': 21, 'birth': datetime.date(
         1991, 11, 15), 'location': 'Las Vegas, NV', 'parents': '3,5', 'siblings': '1',
-        'lat': 36.1716, 'lng': -115.1891},
-    {'id': 5, 'name': 'James Metzger', 'x': 19, 'y': 19, 'birth': datetime.date(
-        1957, 4, 10), 'location': 'San Diego, CA', 'spouse': '3', 'children': '1,4',
-        'lat': 32.8351, 'lng': -116.7664},
-    {'id': 6, 'name': 'Polina Volkova', 'x': 24, 'y': 21, 'birth': datetime.date(
+        'lat': 36.17, 'lng': -115.13},
+    {'id': 5, 'name': 'James Metzger', 'x': 17, 'y': 19, 'birth': datetime.date(
+        1957, 4, 1), 'location': 'San Diego, CA', 'spouse': '3', 'children': '1,4',
+        'lat': 32.83, 'lng': -116.76},
+    {'id': 6, 'name': 'Polina Volkova', 'x': 25, 'y': 21, 'birth': datetime.date(
         1996, 1, 16), 'location': 'Moscow, Russia', 'parents': '7,8', 'siblings': '2',
-        'lat': 55.7558, 'lng': 37.6173},
-    {'id': 7, 'name': 'Anna Volkova', 'x': 22, 'y': 19, 'birth': datetime.date(
+        'lat': 55.75, 'lng': 37.61},
+    {'id': 7, 'name': 'Anna Volkova', 'x': 24, 'y': 19, 'birth': datetime.date(
         1968, 10, 12), 'location': 'Moscow, Russia', 'spouse': '8', 'children': '2,6',
-        'lat': 55.7558, 'lng': 37.6173},
+        'lat': 55.75, 'lng': 37.61},
     {'id': 8, 'name': 'Yuriy Volkov', 'x': 23, 'y': 19, 'birth': datetime.date(
         1966, 8, 18), 'location': 'Moscow, Russia', 'spouse': '7', 'children': '2,6',
-        'lat': 55.7558, 'lng': 37.6173},
-    {'id': 9, 'name': 'Mioyko Jones', 'x': 17, 'y': 17, 'birth': datetime.date(
+        'lat': 55.75, 'lng': 37.61},
+    {'id': 9, 'name': 'Mioyko Jones', 'x': 19, 'y': 17, 'birth': datetime.date(
         1910, 2, 2), 'location': 'San Diego', 'spouse': '10', 'children': '3',
-        'lat': 32.7448, 'lng': -116.9989},
-    {'id': 10, 'name': 'Howard Jones', 'x': 16, 'y': 17, 'birth': datetime.date(
+        'lat': 32.74, 'lng': -116.99},
+    {'id': 10, 'name': 'Howard Jones', 'x': 20, 'y': 17, 'birth': datetime.date(
         1910, 4, 4), 'location': 'San Diego', 'spouse': '9', 'children': '3',
-        'lat': 32.7448, 'lng': -116.9989}
+        'lat': 32.74, 'lng': -116.99},
+    {'id': 11, 'name': 'Дядя Гений', 'x': 28, 'y': 19, 'location': 'Grodno, Belarus', 'spouse': '12',
+        'children': '13,14', 'siblings': '7', 'lat': 53.66, 'lng': 23.82},
+    {'id': 12, 'name': 'Тетя Людмила', 'x': 29, 'y': 19, 'location': 'Grodno, Belarus', 'spouse': '11',
+        'children': '13,14', 'lat': 53.66, 'lng': 23.82},
+    {'id': 13, 'name': 'Julia', 'x': 28, 'y': 21, 'location': 'Minsk, Belarus', 'parents': '11,12', 'siblings': '14',
+        'lat': 53.9, 'lng': 27.55},
+    {'id': 14, 'name': 'Karina', 'x': 30, 'y': 21, 'location': 'Krakow, Poland', 'parents': '11,12', 'siblings': '13',
+        'spouse': '15', 'children': '16', 'lat': 50.06, 'lng': 19.94},
+    {'id': 15, 'name': 'Sabastian', 'x': 31, 'y': 21, 'location': 'Krakow, Poland', 'spouse': '14', 'children': '16',
+        'lat': 50.06, 'lng': 19.94},
+    {'id': 16, 'name': 'Yanik', 'x': 30, 'y': 22, 'location': 'Krakow, Poland', 'lat': 50.06, 'lng': 19.94},
+    {'id': 17, 'name': 'James Metzger sr', 'x': 16, 'y': 17, 'spouse': '17'},
+    {'id': 18, 'name': 'Grandma Metzger', 'x': 15, 'y': 17, 'spouse': '17'}
 ]
 
 user_list = [

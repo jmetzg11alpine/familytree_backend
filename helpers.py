@@ -176,6 +176,19 @@ def update_related_persons(db, person_id, data):
                     update_person_field(db, relative_id, 'spouse', str(person_id))
 
 
+def process_coordinates(coordinate_string):
+    try:
+        if '.' in coordinate_string:
+            integer_part, decimal_part = coordinate_string.split('.')
+            truncated_decimal = decimal_part[:2]
+        else:
+            integer_part, truncated_decimal = coordinate_string, '0'
+        new_coordinate_str = integer_part + '.' + truncated_decimal
+        return float(new_coordinate_str)
+    except ValueError:
+        return None
+
+
 def add_new_relative(formData, squareCoor, db):
     data = {}
     x, y = squareCoor.split('<>')
@@ -187,7 +200,8 @@ def add_new_relative(formData, squareCoor, db):
         key = label_to_key.get(info['label'])
         value = info['value']
         if key in ['lat', 'lng']:
-            data[key] = float(value) if value else None
+            coordinate_value = process_coordinates(value)
+            data[key] = coordinate_value
         elif key == 'birth' and value:
             data[key] = datetime.strptime(info['value'], '%Y-%m-%d').date()
         elif key in ['parents', 'siblings', 'children', 'spouse'] and value:
@@ -263,8 +277,9 @@ def get_updated_data(data, db):
             else:
                 new_data[values_with_list_key[label]] = None
         elif label in float_key:
+            coordinate_value = process_coordinates(field['value'])
             try:
-                new_data[label] = float(field['value'])
+                new_data[label] = coordinate_value
             except ValueError:
                 new_data[label] = None
         else:
@@ -430,6 +445,12 @@ def record_action(current_user, action, name, db):
     db.commit()
 
 
+def get_data_url():
+    with open('data_url.txt', 'r', encoding='utf-8') as file:
+        file_contents = file.read()
+    return file_contents
+
+
 def get_info(db):
     counts = {}
     table = []
@@ -444,7 +465,7 @@ def get_info(db):
     edits = [{'name': user, 'count': count} for user, count in counts.items()]
     sorted_edits = sorted(edits, key=lambda x: x['count'], reverse=True)
     sorted_table = sorted(table, key=lambda x: x['created_at'], reverse=True)
-    return sorted_edits, sorted_table
+    return sorted_edits, sorted_table, get_data_url()
 
 
 def query_visitors(time_range, today, db):
