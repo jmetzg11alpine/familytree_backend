@@ -1,0 +1,6 @@
+__pycache__
+BIOS/
+PHOTOS/*
+!PHOTOS/default_photo.png
+.env
+see-my-family-db.json

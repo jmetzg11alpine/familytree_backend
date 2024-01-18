@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
-from database import SessionLocal
-import helpers
+from .database import SessionLocal
+from . import helpers
 import os
 router = APIRouter()
 

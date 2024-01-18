@@ -1,6 +1,6 @@
-from models import Person, Photo, User, History, Visitor
-from sqlalchemy import and_, not_, or_
-from sqlalchemy.exc import IntegrityError
+from .models import Person, Photo, User, History, Visitor
+from sqlalchemy import and_, or_
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.sql import func
 import os
 import base64
@@ -178,6 +178,8 @@ def update_related_persons(db, person_id, data):
 
 def process_coordinates(coordinate_string):
     try:
+        if not coordinate_string:
+            return None
         if '.' in coordinate_string:
             integer_part, decimal_part = coordinate_string.split('.')
             truncated_decimal = decimal_part[:2]
@@ -292,6 +294,8 @@ def update_details(id, data, db):
     try:
         updated_data = get_updated_data(data, db)
         person = db.query(Person).filter_by(id=id).first()
+        if person is None:
+            raise AttributeError('Person not found with the give ID, update_details()')
         person_id = person.id
         update_related_persons(db, person_id, updated_data)
         person.name = updated_data['Name']
@@ -307,11 +311,14 @@ def update_details(id, data, db):
         message = 'success'
         name = updated_data['Name']
         return message, name
-    except:
+    except AttributeError as e:
         db.rollback()
-        message = 'error'
-        name = updated_data['Name']
-        return message, name
+        print(f'AttributeError: {e}')
+        return 'error', None
+    except SQLAlchemyError as e:
+        db.rollback()
+        print(f'SQLAlchemyError: {e}')
+        return 'error', None
 
 
 def remove_person(id_to_remove, ids, relation, db):
@@ -416,7 +423,7 @@ def delete_one_photo(path, db):
 
 def get_all_coor(db):
     data = defaultdict(lambda: {'name': '', 'location': '', 'size': 0, 'coor': {}})
-    people = db.query(Person.name, Person.location, Person.lat, Person.lng).filter(not_(or_(Person.lat == None, Person.lng == None))).all()
+    people = db.query(Person.name, Person.location, Person.lat, Person.lng).filter(or_(Person.lat.isnot(None), Person.lng.isnot(None))).all()
     for person in people:
         coor_key = f'{person.lat},{person.lng}'
         if data[coor_key]['size'] > 0:
@@ -435,7 +442,11 @@ def login_user(username, password, db):
         username, password = username.strip(), password.strip()
         user = db.query(User).filter_by(username=username).first()
         return user.username == username and user.password == password
-    except:
+    except AttributeError as e:
+        print(f'Attribute error: {e}')
+        return False
+    except SQLAlchemyError as e:
+        print(f'Database error: {e}')
         return False
 
 
@@ -446,7 +457,9 @@ def record_action(current_user, action, name, db):
 
 
 def get_data_url():
-    with open('data_url.txt', 'r', encoding='utf-8') as file:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    data_url_path = os.path.join(current_dir, 'data', 'data_url.txt')
+    with open(data_url_path, 'r', encoding='utf-8') as file:
         file_contents = file.read()
     return file_contents
 

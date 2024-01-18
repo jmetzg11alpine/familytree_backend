@@ -4,8 +4,5 @@ PHOTOS/*
 
 .env
 
-see-my-family-db.json
+src/data*
 
-data.csv
-
-data_url.txt

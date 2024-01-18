@@ -1,9 +1,10 @@
-from database import SessionLocal, engine
-from models import Person, Photo, User, History, Visitor, Base
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from database import SessionLocal, engine, Base
+from models import Person, Photo, User, History, Visitor
 import random
 import datetime
-import os
-
 
 people_list = [
     {'id': 1, 'name': 'Jesse Metzger', 'x': 20, 'y': 21, 'birth': datetime.date(
@@ -124,7 +125,7 @@ def populate_database():
 
         clear_bios()
         clear_photos()
-        ###### fills Visitor table for development purposes #########
+        # fills Visitor table for development purposes
         # make_visitor_data(session)
 
         session.commit()

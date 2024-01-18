@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -5,16 +8,15 @@ import datetime
 from models import Person
 from database import SessionLocal
 import csv
-import os
-import sys
 from dotenv import load_dotenv
 load_dotenv()
 email = os.getenv('EMAIL')
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def create_service():
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    SERVICE_ACCOUNT_FILE = 'see-my-family-db.json'
+    SERVICE_ACCOUNT_FILE = os.path.join(current_dir, 'data', 'see-my-family-db.json')
     credentials = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     service = build('drive', 'v3', credentials=credentials)
@@ -41,8 +43,8 @@ def share_folder_with_user(service, folder_id, user_email):
     service.permissions().create(fileId=folder_id, body=user_permission, fields='id').execute()
 
 
-def get_data():
-    with SessionLocal() as db, open('data.csv', mode='w', newline='', encoding='utf-8') as file:
+def get_data(csv_location):
+    with SessionLocal() as db, open(csv_location, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerow(['id', 'name', 'location', 'birth', 'parents', 'spouse', 'siblings', 'children', 'coor'])
 
@@ -61,7 +63,9 @@ def upload_file(service, folder_id, file_path, file_name, mime_type):
     service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
 
-def upload_photos(service, photos_folder_id, photos_dir):
+def upload_photos(service, photos_folder_id):
+    relative_photos_dir = '../PHOTOS'
+    photos_dir = os.path.abspath(os.path.join(current_dir, relative_photos_dir))
     for root, dirs, files in os.walk(photos_dir):
         subfolder_path = os.path.relpath(root, photos_dir)
         if subfolder_path == '.':
@@ -73,7 +77,9 @@ def upload_photos(service, photos_folder_id, photos_dir):
                 upload_file(service, current_folder_id, file_path, file, 'image/jpeg')
 
 
-def upload_bios(service, bios_folder_id, bios_dir):
+def upload_bios(service, bios_folder_id):
+    relative_bios_dir = '../BIOS'
+    bios_dir = os.path.abspath(os.path.join(current_dir, relative_bios_dir))
     for root, dirs, files in os.walk(bios_dir):
         for file in files:
             file_path = os.path.join(root, file)
@@ -85,7 +91,8 @@ def get_folder_url(service, folder_id):
     return folder.get('webViewLink')
 
 
-def save_url(folder_url, file_name='data_url.txt'):
+def save_url(folder_url):
+    file_name = os.path.join(current_dir, 'data', 'data_url.txt')
     with open(file_name, 'w') as file:
         file.write(folder_url)
 
@@ -96,21 +103,22 @@ def main():
     parent_folder_id = create_folder(service, today)
     share_folder_with_user(service, parent_folder_id, email)
 
-    get_data()
-    upload_file(service, parent_folder_id, 'data.csv', 'data.csv', 'text/csv')
+    csv_location = os.path.join(current_dir, 'data', 'data.csv')
+    get_data(csv_location)
+    upload_file(service, parent_folder_id, csv_location, 'data.csv', 'text/csv')
 
     photos_folder_id = create_folder(service, 'PHOTOS', parent_folder_id)
-    upload_photos(service, photos_folder_id, 'PHOTOS')
+    upload_photos(service, photos_folder_id)
 
     bios_folder_id = create_folder(service, 'BIOS', parent_folder_id)
-    upload_bios(service, bios_folder_id, 'BIOS')
+    upload_bios(service, bios_folder_id)
 
     folder_url = get_folder_url(service, parent_folder_id)
     save_url(folder_url)
 
 
 def list_files():
-    SERVICE_ACCOUNT_FILE = 'see-my-family-db.json'
+    SERVICE_ACCOUNT_FILE = os.path.join(current_dir, 'data', 'see-my-family-db.json')
     SCOPES = ['https://www.googleapis.com/auth/drive']
     credentials = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
@@ -127,7 +135,7 @@ def list_files():
 
 
 def delete_all_files():
-    SERVICE_ACCOUNT_FILE = 'see-my-family-db.json'
+    SERVICE_ACCOUNT_FILE = os.path.join(current_dir, 'data', 'see-my-family-db.json')
     SCOPES = ['https://www.googleapis.com/auth/drive']
     credentials = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)

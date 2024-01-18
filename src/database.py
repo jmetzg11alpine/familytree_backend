@@ -1,7 +1,7 @@
 from urllib.parse import quote
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import Base
+from src.models import Base
 import os
 from dotenv import load_dotenv
 load_dotenv()
