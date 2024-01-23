@@ -6,3 +6,5 @@ PHOTOS/*
 
 src/data*
 
+__pycache__
+
