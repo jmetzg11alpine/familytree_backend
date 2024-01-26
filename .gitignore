@@ -8,3 +8,4 @@ src/data*
 
 __pycache__
 
+init-scripts/*

@@ -19,7 +19,7 @@ def read_root():
     return {'message': 'backend is running'}
 
 
-@router.get('/get_people')
+@router.get('/api/get_people')
 def get_people(request: Request, db: Session = Depends(get_db)):
     name_key, coor_key, coor_range = helpers.get_all_people(db)
     client_ip = request.client.host
@@ -27,13 +27,13 @@ def get_people(request: Request, db: Session = Depends(get_db)):
     return {'name_key': name_key, 'coor_key': coor_key, 'coor_range': coor_range}
 
 
-@router.get('/get_person/{id}')
+@router.get('/api/get_person/{id}')
 def get_person(id: int, db: Session = Depends(get_db)):
     retults = helpers.get_person_details(db, id)
     return retults
 
 
-@router.post('/get_potential_relatives')
+@router.post('/api/get_potential_relatives')
 async def get_potentional_relatives(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     coor = data.get('coor')
@@ -41,7 +41,7 @@ async def get_potentional_relatives(request: Request, db: Session = Depends(get_
     return results
 
 
-@router.post('/add_relative')
+@router.post('/api/add_relative')
 async def add_relative(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     squareCoor = data.get('squareCoor')
@@ -53,7 +53,7 @@ async def add_relative(request: Request, db: Session = Depends(get_db)):
     return {'message': message, 'name': name}
 
 
-@router.post('/get_details_to_edit')
+@router.post('/api/get_details_to_edit')
 async def get_details_to_edit(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     person_id = data.get('id')
@@ -61,7 +61,7 @@ async def get_details_to_edit(request: Request, db: Session = Depends(get_db)):
     return return_data
 
 
-@router.post('/update_details')
+@router.post('/api/update_details')
 async def update_person_details(request: Request, db: Session = Depends(get_db)):
     data_received = await request.json()
     data = data_received.get('data')
@@ -74,7 +74,7 @@ async def update_person_details(request: Request, db: Session = Depends(get_db))
     return {'message': message, 'name': name}
 
 
-@router.post('/update_bio')
+@router.post('/api/update_bio')
 async def update_bio(request: Request, db: Session = Depends(get_db)):
     data_received = await request.json()
     bio = data_received.get('bio')
@@ -95,7 +95,7 @@ async def update_bio(request: Request, db: Session = Depends(get_db)):
     return {'message': 'success'}
 
 
-@router.post('/delete_person')
+@router.post('/api/delete_person')
 async def delete_person(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     name = data.get('name')
@@ -105,7 +105,7 @@ async def delete_person(request: Request, db: Session = Depends(get_db)):
     return {'message': f'{name} was deleted'}
 
 
-@router.post('/photos')
+@router.post('/api/photos')
 async def get_photos_of_person(request: Request, db: Session = Depends(get_db)):
     data_received = await request.json()
     person_id = data_received.get('id')
@@ -113,7 +113,7 @@ async def get_photos_of_person(request: Request, db: Session = Depends(get_db)):
     return {'data': data, 'paths': paths}
 
 
-@router.post('/photo')
+@router.post('/api/photo')
 async def get_photo_of_person(request: Request, db: Session = Depends(get_db)):
     data_received = await request.json()
     path = data_received.get('path')
@@ -121,7 +121,7 @@ async def get_photo_of_person(request: Request, db: Session = Depends(get_db)):
     return {'data': data}
 
 
-@router.post('/profile_photo')
+@router.post('/api/profile_photo')
 async def make_profile_photo(request: Request, db: Session = Depends(get_db)):
     data_received = await request.json()
     person_id = data_received.get('person_id')
@@ -133,7 +133,7 @@ async def make_profile_photo(request: Request, db: Session = Depends(get_db)):
     return {'message': 'new profile photo set'}
 
 
-@router.post('/update_photo_description')
+@router.post('/api/update_photo_description')
 async def update_photo_description(request: Request, db: Session = Depends(get_db)):
     data_received = await request.json()
     description = data_received.get('description')
@@ -146,7 +146,7 @@ async def update_photo_description(request: Request, db: Session = Depends(get_d
     return {'message': 'description updated'}
 
 
-@router.post('/add_photo')
+@router.post('/api/add_photo')
 async def add_photo(request: Request, db: Session = Depends(get_db)):
     form_data = await request.form()
     photo = form_data.get('photo')
@@ -160,7 +160,7 @@ async def add_photo(request: Request, db: Session = Depends(get_db)):
     return {'message': 'photo added'}
 
 
-@router.post('/delete_photo')
+@router.post('/api/delete_photo')
 async def delete_photo(request: Request, db: Session = Depends(get_db)):
     data_received = await request.json()
     path = data_received.get('path')
@@ -172,13 +172,13 @@ async def delete_photo(request: Request, db: Session = Depends(get_db)):
     return {'message': 'photo deleted'}
 
 
-@router.get('/get_coor')
+@router.get('/api/get_coor')
 def get_coor(db: Session = Depends(get_db)):
     data = helpers.get_all_coor(db)
     return data
 
 
-@router.post('/login')
+@router.post('/api/login')
 async def login(request: Request, db: Session = Depends(get_db)):
     data_received = await request.json()
     username = data_received.get('username')
@@ -187,13 +187,13 @@ async def login(request: Request, db: Session = Depends(get_db)):
     return {'message': response}
 
 
-@router.get('/get_info')
+@router.get('/api/get_info')
 async def get_edits_and_table(db: Session = Depends(get_db)):
     edits, table, url = helpers.get_info(db)
     return {'edits': edits, 'table': table, 'url': url}
 
 
-@router.post('/get_visitors')
+@router.post('/api/get_visitors')
 async def get_visitors(request: Request, db: Session = Depends(get_db)):
     data_received = await request.json()
     time_range = data_received.get('timeRange')

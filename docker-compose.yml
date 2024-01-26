@@ -9,3 +9,4 @@ services:
       - ./init-scripts:/docker-entrypoint-initdb.d
     ports:
       - "3307:3306"
+    restart: always
