@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Header
 from sqlalchemy.orm import Session
 from .database import SessionLocal
 from . import helpers
@@ -20,9 +20,9 @@ def read_root():
 
 
 @router.get('/api/get_people')
-def get_people(request: Request, db: Session = Depends(get_db)):
+def get_people(request: Request, db: Session = Depends(get_db), x_forwarded_for: str = Header(None)):
     name_key, coor_key, coor_range = helpers.get_all_people(db)
-    client_ip = request.client.host
+    client_ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.client.host
     helpers.record_visitor(client_ip, db)
     return {'name_key': name_key, 'coor_key': coor_key, 'coor_range': coor_range}
 
