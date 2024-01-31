@@ -96,12 +96,16 @@ def create_sql_dump(output_file, DATABASE_URL, DATABASE_PASSWORD):
     parsed_url = urlparse(DATABASE_URL)
     db_name = parsed_url.path[1:]
     user = parsed_url.username
-    host = parsed_url.hostname
-    port = parsed_url.port
-    print(port)
-    command = f"mysqldump --user={user} --password={DATABASE_PASSWORD} --host={host} --port={port} --no-create-info --ignore-table={db_name}.user {db_name} > {output_file}"
+    container_name = 'backend_db_1'
+    command = (
+        f"docker exec {container_name} "
+        f"mysqldump -u{user} -p{DATABASE_PASSWORD} "
+        f"--no-create-info --ignore-table={db_name}.user {db_name}"
+    )
     print(command)
-    subprocess.run(command, shell=True, check=True)
+    with open(output_file, 'w') as file:
+        subprocess.run(command, shell=True, check=True, stdout=file, stderr=subprocess.PIPE)
+    print(f"mySQL backup created successfully at {output_file}")
 
 
 def get_folder_url(service, folder_id):
@@ -121,22 +125,22 @@ def main():
     parent_folder_id = create_folder(service, today)
     share_folder_with_user(service, parent_folder_id, EMAIL)
 
-    # csv_location = os.path.join(current_dir, 'data', 'data.csv')
-    # get_data(csv_location)
-    # upload_file(service, parent_folder_id, csv_location, 'data.csv', 'text/csv')
+    csv_location = os.path.join(current_dir, 'data', 'data.csv')
+    get_data(csv_location)
+    upload_file(service, parent_folder_id, csv_location, 'data.csv', 'text/csv')
 
-    # photos_folder_id = create_folder(service, 'PHOTOS', parent_folder_id)
-    # upload_photos(service, photos_folder_id)
+    photos_folder_id = create_folder(service, 'PHOTOS', parent_folder_id)
+    upload_photos(service, photos_folder_id)
 
-    # bios_folder_id = create_folder(service, 'BIOS', parent_folder_id)
-    # upload_bios(service, bios_folder_id)
+    bios_folder_id = create_folder(service, 'BIOS', parent_folder_id)
+    upload_bios(service, bios_folder_id)
 
     sql_file = os.path.join(current_dir, 'data', f'{today}_dump.sql')
     create_sql_dump(sql_file, DATABASE_URL, DATABASE_PASSWORD)
     upload_file(service, parent_folder_id, sql_file, f'{today}_dump.sql', 'application/x-sql')
 
-    # folder_url = get_folder_url(service, parent_folder_id)
-    # save_url(folder_url)
+    folder_url = get_folder_url(service, parent_folder_id)
+    save_url(folder_url)
 
 
 def list_files():
