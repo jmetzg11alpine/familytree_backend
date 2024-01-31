@@ -9,9 +9,15 @@ from models import Person
 from database import SessionLocal
 import csv
 from dotenv import load_dotenv
+import datetime
+import subprocess
+from urllib.parse import urlparse
 load_dotenv()
-email = os.getenv('EMAIL')
+EMAIL = os.getenv('EMAIL')
+DATABASE_PASSWORD = os.getenv('DATABASE_PASSWORD')
+DATABASE_URL = os.getenv('DATABASE_URL')
 current_dir = os.path.dirname(os.path.abspath(__file__))
+today = str(datetime.date.today())
 
 
 def create_service():
@@ -86,6 +92,18 @@ def upload_bios(service, bios_folder_id):
             upload_file(service, bios_folder_id, file_path, file, 'text/plain')
 
 
+def create_sql_dump(output_file, DATABASE_URL, DATABASE_PASSWORD):
+    parsed_url = urlparse(DATABASE_URL)
+    db_name = parsed_url.path[1:]
+    user = parsed_url.username
+    host = parsed_url.hostname
+    port = parsed_url.port
+    print(port)
+    command = f"mysqldump --user={user} --password={DATABASE_PASSWORD} --host={host} --port={port} --no-create-info --ignore-table={db_name}.user {db_name} > {output_file}"
+    print(command)
+    subprocess.run(command, shell=True, check=True)
+
+
 def get_folder_url(service, folder_id):
     folder = service.files().get(fileId=folder_id, fields='webViewLink').execute()
     return folder.get('webViewLink')
@@ -101,20 +119,24 @@ def main():
     service = create_service()
     today = datetime.date.today().strftime('%Y-%m-%d')
     parent_folder_id = create_folder(service, today)
-    share_folder_with_user(service, parent_folder_id, email)
+    share_folder_with_user(service, parent_folder_id, EMAIL)
 
-    csv_location = os.path.join(current_dir, 'data', 'data.csv')
-    get_data(csv_location)
-    upload_file(service, parent_folder_id, csv_location, 'data.csv', 'text/csv')
+    # csv_location = os.path.join(current_dir, 'data', 'data.csv')
+    # get_data(csv_location)
+    # upload_file(service, parent_folder_id, csv_location, 'data.csv', 'text/csv')
 
-    photos_folder_id = create_folder(service, 'PHOTOS', parent_folder_id)
-    upload_photos(service, photos_folder_id)
+    # photos_folder_id = create_folder(service, 'PHOTOS', parent_folder_id)
+    # upload_photos(service, photos_folder_id)
 
-    bios_folder_id = create_folder(service, 'BIOS', parent_folder_id)
-    upload_bios(service, bios_folder_id)
+    # bios_folder_id = create_folder(service, 'BIOS', parent_folder_id)
+    # upload_bios(service, bios_folder_id)
 
-    folder_url = get_folder_url(service, parent_folder_id)
-    save_url(folder_url)
+    sql_file = os.path.join(current_dir, 'data', f'{today}_dump.sql')
+    create_sql_dump(sql_file, DATABASE_URL, DATABASE_PASSWORD)
+    upload_file(service, parent_folder_id, sql_file, f'{today}_dump.sql', 'application/x-sql')
+
+    # folder_url = get_folder_url(service, parent_folder_id)
+    # save_url(folder_url)
 
 
 def list_files():

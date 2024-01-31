@@ -7,6 +7,8 @@ import base64
 from datetime import datetime, timedelta
 import time
 from collections import defaultdict
+from PIL import Image
+import io
 
 
 def record_visitor(client_ip, db):
@@ -32,19 +34,19 @@ def update_coor_range(x, y, coor_range):
 
 def get_all_people(db):
     people = db.query(Person).all()
-    name_key, coor_key = {}, {}
+    name_birth_key, coor_key = {}, {}
     coor_range = {'minY': float('inf'), 'maxY': -float('inf'), 'minX': float('inf'), 'maxX': -float('inf')}
     for p in people:
         x, y = p.x, p.y
         coor = str(x) + '<>' + str(y)
         coor_key[coor] = p.id
-        name_key[p.id] = p.name
+        name_birth_key[p.id] = {'name': p.name, 'birth': p.birth}
         coor_range = update_coor_range(x, y, coor_range)
     coor_range['minX'] -= 3
     coor_range['maxX'] += 3
     coor_range['minY'] -= 3
     coor_range['maxY'] += 3
-    return name_key, coor_key, coor_range
+    return name_birth_key, coor_key, coor_range
 
 
 def get_name(db, id):
@@ -393,12 +395,29 @@ def update_description_of_photo(description, path, db):
 
 
 def add_new_photo(photo_data, description, person_id, db):
+    image = Image.open(io.BytesIO(photo_data))
+    if image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info):
+        alpha = image.convert('RGBA').split()[-1]
+        background = Image.new("RGB", image.size, (255, 255, 255))
+        background.paste(image, mask=alpha)  # Paste using alpha channel as mask
+        image = background
+    quality = 100
+    max_file_size = 1024 * 1024
+    compressed_photo_data = None
+    while True:
+        compressed_image_io = io.BytesIO()
+        image.save(compressed_image_io, format='JPEG', quality=quality)
+        compressed_photo_data = compressed_image_io.getvalue()
+        if len(compressed_photo_data) <= max_file_size or quality <= 10:
+            break
+        quality -= 5
+
     directory = f'PHOTOS/{str(person_id)}'
     if not os.path.exists(directory):
         os.makedirs(directory)
     path = directory + '/' + str(time.time()).split('.')[0] + '.png'
     with open(path, 'wb') as file:
-        file.write(photo_data)
+        file.write(compressed_photo_data)
     person_has_photo = db.query(Photo).filter_by(person_id=person_id).first()
     profile_photo = 1 if person_has_photo is None else 0
     new_photo = Photo(person_id=person_id, profile_photo=profile_photo, path=path, description=description)

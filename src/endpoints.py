@@ -21,10 +21,10 @@ def read_root():
 
 @router.get('/api/get_people')
 def get_people(request: Request, db: Session = Depends(get_db), x_forwarded_for: str = Header(None)):
-    name_key, coor_key, coor_range = helpers.get_all_people(db)
+    name_birth_key, coor_key, coor_range = helpers.get_all_people(db)
     client_ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.client.host
     helpers.record_visitor(client_ip, db)
-    return {'name_key': name_key, 'coor_key': coor_key, 'coor_range': coor_range}
+    return {'name_birth_key': name_birth_key, 'coor_key': coor_key, 'coor_range': coor_range}
 
 
 @router.get('/api/get_person/{id}')
