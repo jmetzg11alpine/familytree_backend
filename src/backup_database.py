@@ -103,9 +103,12 @@ def create_sql_dump(output_file, DATABASE_URL, DATABASE_PASSWORD):
         f"--no-create-info --ignore-table={db_name}.user {db_name}"
     )
     print(command)
-    with open(output_file, 'w') as file:
-        subprocess.run(command, shell=True, check=True, stdout=file, stderr=subprocess.PIPE)
-    print(f"mySQL backup created successfully at {output_file}")
+    try:
+        with open(output_file, 'w') as file:
+            subprocess.run(command, shell=True, check=True, stdout=file, stderr=subprocess.PIPE)
+        print(f"mySQL backup created successfully at {output_file}")
+    except Exception as e:
+        print(e)
 
 
 def get_folder_url(service, folder_id):
