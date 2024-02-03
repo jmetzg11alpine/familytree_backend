@@ -4,7 +4,7 @@ import uvicorn
 from src.endpoints import router
 
 import cProfile
-# allow_origins=['http://localhost:3000', 'http://localhost:8080'],
+# allow_origins=['18.235.27.100'],
 
 app = FastAPI()
 app.include_router(router)

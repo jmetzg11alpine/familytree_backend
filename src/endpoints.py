@@ -46,6 +46,9 @@ async def add_relative(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     squareCoor = data.get('squareCoor')
     formData = data.get('formData')
+    _list = formData['fields']
+    for x in _list:
+        print(x)
     message, name = helpers.add_new_relative(formData, squareCoor, db)
     if message == 'success':
         current_user = data.get('currentUser')
@@ -199,3 +202,14 @@ async def get_visitors(request: Request, db: Session = Depends(get_db)):
     time_range = data_received.get('timeRange')
     visitors = helpers.calculate_visitors(time_range, db)
     return visitors
+
+
+@router.post('/api/update_location')
+async def update_location(request: Request, db: Session = Depends(get_db)):
+    data_received = await request.json()
+    person_id = data_received.get('personID')
+    new_location = data_received.get('newLocation')
+    current_user = data_received.get('currentUser')
+    message, person_name = helpers.set_new_location(person_id, new_location, db)
+    helpers.record_action(current_user, 'moved position', person_name, db)
+    return {'message': message}

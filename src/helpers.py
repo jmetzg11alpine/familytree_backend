@@ -111,9 +111,10 @@ def get_person_details(db, id):
     siblings_list = process_relationships(db, person.siblings)
     bio = get_bio(person.name)
     profile_photo = get_profile_photo(db, id)
+    coor = str(person.x) + '<>' + str(person.y)
     return {'name': person.name, 'id': person.id, 'birth': person.birth, 'location': person.location, 'parents': check_null_list(parents_list),
             'children': check_null_list(children_list), 'spouse': check_null_list(spouse_list), 'siblings': check_null_list(siblings_list),
-            'bio': bio, 'profile_photo': profile_photo, 'lat': person.lat, 'lng': person.lng}
+            'bio': bio, 'profile_photo': profile_photo, 'lat': person.lat, 'lng': person.lng, 'coor': coor}
 
 
 def search_potential_relatives(minX, maxX, minY, maxY, db, id):
@@ -561,3 +562,14 @@ def calculate_visitors(time_range, db):
         return group_by_week(visitors, today)
     else:
         return group_by_month(visitors)
+
+
+def set_new_location(person_id, new_location, db):
+    person = db.query(Person).filter(Person.id == person_id).first()
+    name = person.name
+    new_x, new_y = new_location.split('<>')
+    person.x = int(new_x)
+    person.y = int(new_y)
+    db.commit()
+    message = f'{name} has been moved'
+    return message, name

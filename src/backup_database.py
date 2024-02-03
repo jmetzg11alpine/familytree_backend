@@ -96,7 +96,7 @@ def create_sql_dump(output_file, DATABASE_URL, DATABASE_PASSWORD):
     parsed_url = urlparse(DATABASE_URL)
     db_name = parsed_url.path[1:]
     user = parsed_url.username
-    container_name = 'backend_db_1'
+    container_name = 'familytree_backend-db-1'
     command = (
         f"docker exec {container_name} "
         f"mysqldump -u{user} -p{DATABASE_PASSWORD} "
@@ -146,43 +146,77 @@ def main():
     save_url(folder_url)
 
 
+def show_service_acount_info():
+    SERVICE_ACCOUNT_FILE = os.path.join(current_dir, 'data', 'see-my-family-db.json')
+    SCOPES = ['https://www.googleapis.com/auth/drive']
+    credentials = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    service = build('drive', 'v3', credentials=credentials)
+    about_info = service.about().get(fields='storageQuota, user').execute()
+    storage_quota = about_info.get('storageQuota', {})
+    user_info = about_info.get('user', {})
+    print('-----------General Info-----------')
+    print(f"Drive User: {user_info.get('emailAddress')}")
+    print(f"Total Storage: {int(storage_quota.get('limit', 0)) / (1024*1024*1024):.2f} GB")
+    print(f"Used Storage: {int(storage_quota.get('usage', 0)) / (1024*1024*1024):.2f} GB")
+    print(f"Available Storage: {(int(storage_quota.get('limit', 0)) - int(storage_quota.get('usage', 0))) / (1024*1024*1024):.2f} GB\n")
+
+
 def list_files():
     SERVICE_ACCOUNT_FILE = os.path.join(current_dir, 'data', 'see-my-family-db.json')
     SCOPES = ['https://www.googleapis.com/auth/drive']
     credentials = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     service = build('drive', 'v3', credentials=credentials)
-    results = service.files().list(
-        pageSize=10, fields="nextPageToken, files(id, name)").execute()
-    items = results.get('files', [])
-    if not items:
-        print('No files found.')
-    else:
-        print('Files:')
-        for item in items:
-            print(f"{item['name']} ({item['id']})")
+    page_token = None
+    counter = 0
+    while True:
+        print(f'----------{counter}------')
+        results = service.files().list(
+            pageSize=10,
+            fields="nextPageToken, files(id, name, createdTime)",
+            pageToken=page_token
+        ).execute()
+        items = results.get('files', [])
+        if not items:
+            print('No files found.')
+            break
+        else:
+            print('Files:')
+            for item in items:
+                print(f"{item['name']} ({item['id']}) {item['createdTime']}")
+        page_token = results.get('nextPageToken', None)
+        counter += 1
+        if page_token is None:
+            break
 
 
-def delete_all_files():
+def delete_all_files(before_date):
+    '''before_date = '2024-02-02' '''
     SERVICE_ACCOUNT_FILE = os.path.join(current_dir, 'data', 'see-my-family-db.json')
     SCOPES = ['https://www.googleapis.com/auth/drive']
     credentials = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     service = build('drive', 'v3', credentials=credentials)
-    results = service.files().list().execute()
+    query = f"createdTime <= '{before_date}T23:59:59'"
+    results = service.files().list(q=query, fields="files(id, name, createdTime)").execute()
     items = results.get('files', [])
+    if not items:
+        print("No files found to delete.")
+        return
     for item in items:
         try:
             service.files().delete(fileId=item['id']).execute()
-            print(f"Deleted: {item['name']} ({item['id']})")
+            print(f"Deleted: {item['name']} ({item['id']}) - Created: {item['createdTime']}")
         except Exception as e:
             print(f"An error occurred: {e}")
 
 
 def list_and_clear():
+    # list_files()
+    # delete_all_files('2024-02-02')
     list_files()
-    delete_all_files()
-    list_files()
+    show_service_acount_info()
 
 
 if __name__ == '__main__':
