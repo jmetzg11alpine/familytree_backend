@@ -5,6 +5,7 @@ from sqlalchemy.sql import func
 Base = declarative_base()
 
 
+# see my family
 class Person(Base):
     __tablename__ = 'person'
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -52,3 +53,28 @@ class Visitor(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     ip_address = Column(String(225))
     date = Column(Date, default=func.now())
+
+
+# budget
+class AgencyBudget(Base):
+    __tablename__ = 'agency_budget'
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    agency = Column(String(255))
+    budget = Column(Float)
+
+
+class ForeignAid(Base):
+    __tablename__ = 'foreign_aid'
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    country = Column(String(255))
+    amount = Column(Float)
+    lat = Column(Float)
+    lng = Column(Float)
+
+
+class FunctionSpending(Base):
+    __tablename__ = 'function_spending'
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    year = Column(Integer)
+    name = Column(String(255))
+    amount = Column(Float)

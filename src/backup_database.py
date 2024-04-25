@@ -1,6 +1,3 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -9,9 +6,13 @@ from models import Person
 from database import SessionLocal
 import csv
 from dotenv import load_dotenv
-import datetime
 import subprocess
 from urllib.parse import urlparse
+
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 load_dotenv()
 EMAIL = os.getenv('EMAIL')
 DATABASE_PASSWORD = os.getenv('DATABASE_PASSWORD')

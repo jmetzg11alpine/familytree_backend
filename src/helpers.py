@@ -1,4 +1,4 @@
-from .models import Person, Photo, User, History, Visitor
+from .models import Person, Photo, User, History, Visitor, AgencyBudget, ForeignAid, FunctionSpending
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.sql import func
@@ -573,3 +573,77 @@ def set_new_location(person_id, new_location, db):
     db.commit()
     message = f'{name} has been moved'
     return message, name
+
+
+# BUDGET
+
+
+def get_agency_budget(db):
+    budget = db.query(AgencyBudget).order_by(AgencyBudget.budget.desc()).all()
+
+    renaming = {
+        "Department of the Treasury": 'Treasury',
+        'Department of Health and Human Services': 'Health and Human',
+        'Department of Defense': 'Defense',
+        'Social Security Administration': 'Social Security',
+        'Department of Veterans Affairs': 'Vetrerans Affiars',
+        'Department of Agriculture': 'Agriculture',
+        'Office of Personnel Management': 'OPM',
+        'Department of Housing and Urban Development': 'Housing',
+        'Department of Transportation': 'Transportation',
+        'Department of Homeland Security': 'Homeland Security',
+        'Department of Energy': 'Energy',
+        'Department of Commerce': 'Commerce',
+        'Department of Education': 'Education',
+        'Environmental Protection Agency': 'Environmental',
+        'Department of the Interior': 'Interior',
+        'Department of State': 'State',
+        'General Services Administration': 'General Services',
+        'Department of Justice': 'Justice',
+        'Department of Labor': 'Labor',
+        'Pension Benefit Guaranty Corporation': 'Pension'
+
+    }
+
+    colors = ['219, 22, 47', '56, 57, 97', '34, 49, 83', '20, 40, 48', '3, 37, 76',
+              '5, 51, 96', '28, 56, 90', '14, 32, 77', '15, 48, 87', '23, 42, 76']
+
+    main_data, other_data = [], []
+    main_other_value = 0
+    other_other_value, other_other_labels = 0, []
+
+    for i, entry in enumerate(budget):
+        if i < 9:
+            main_data.append({'label': renaming.get(entry.agency, entry.agency),
+                              'value': entry.budget,
+                              'tooltip': entry.agency,
+                              'backgroundColor': 'rgba(' + colors[i] + ', 1)'
+                              })
+        elif i < 18:
+            main_other_value += entry.budget
+            other_data.append({'label': renaming.get(entry.agency, entry.agency),
+                               'value': entry.budget,
+                               'tooltip': entry.agency,
+                               'backgroundColor': 'rgba(' + colors[i-9] + ', 1)'
+                               })
+        else:
+            main_other_value += entry.budget
+            other_other_value += entry.budget
+            other_other_labels.append((entry.agency, entry.budget))
+
+    other_other_labels.sort(key=lambda x: x[1], reverse=True)
+    other_other_labels = [f'{agency}: ${int(budget):,}' for agency, budget in other_other_labels]
+
+    main_data_description = "Most of the Treasury's budget goes towards national and public debt."
+    main_data.append({'label': 'other',
+                      'value': main_other_value,
+                      'tooltip': 'break down in other graph',
+                      'backgroundColor': 'rgba(' + colors[9] + ', 0.4)'})
+
+    other_data_desciption = 'The smallest allocations are: ' + ', '.join(other_other_labels)
+    other_data.append({'label': f'{len(other_other_labels)} others',
+                       'value': other_other_value,
+                       'tooltip': 'break down described below',
+                       'backgroundColor': 'rgba(' + colors[9] + ', 0.4)'})
+
+    return main_data, other_data, main_data_description, other_data_desciption

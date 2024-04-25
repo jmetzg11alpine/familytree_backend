@@ -46,9 +46,6 @@ async def add_relative(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     squareCoor = data.get('squareCoor')
     formData = data.get('formData')
-    _list = formData['fields']
-    for x in _list:
-        print(x)
     message, name = helpers.add_new_relative(formData, squareCoor, db)
     if message == 'success':
         current_user = data.get('currentUser')
@@ -213,3 +210,12 @@ async def update_location(request: Request, db: Session = Depends(get_db)):
     message, person_name = helpers.set_new_location(person_id, new_location, db)
     helpers.record_action(current_user, 'moved position', person_name, db)
     return {'message': message}
+
+
+# BUDGET
+
+
+@router.get('/api/agency_budget')
+async def get_agency_budget(db: Session = Depends(get_db)):
+    main_data, other_data, sentence_one, sentence_two = helpers.get_agency_budget(db)
+    return {'main_data': main_data, 'other_data': other_data, 'sentence': {'one': sentence_one, 'two': sentence_two}}
