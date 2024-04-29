@@ -68,6 +68,7 @@ class ForeignAid(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     country = Column(String(255))
     amount = Column(Float)
+    year = Column(Integer)
     lat = Column(Float)
     lng = Column(Float)
 

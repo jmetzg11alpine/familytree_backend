@@ -1,5 +1,5 @@
 from .models import Person, Photo, User, History, Visitor, AgencyBudget, ForeignAid, FunctionSpending
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.sql import func
 import os
@@ -647,3 +647,89 @@ def get_agency_budget(db):
                        'backgroundColor': 'rgba(' + colors[9] + ', 0.4)'})
 
     return main_data, other_data, main_data_description, other_data_desciption
+
+
+def normalize_amount(x, _min, _max):
+    base_size = 4
+    scale_factor = 35
+    if x <= _min:
+        return base_size
+    return base_size + scale_factor * (x - _min) / (_max - _min)
+
+
+def get_bar_data(data):
+    bar_data = {year: 0 for year in range(2015, 2025)}
+    for aid in data:
+        bar_data[aid.year] += aid.amount
+    return [(year, amount) for year, amount in bar_data.items()]
+
+
+def get_map_data(data):
+    country_data = {}
+    i = 1
+    country_set = set()
+    for aid in data:
+        country = aid.country
+        country_set.add(country)
+        if country in country_data:
+            country_data[country]['amount'] += aid.amount
+        else:
+            country_data[country] = {'id': i, 'lat': aid.lat, 'lng': aid.lng, 'amount': aid.amount}
+            i += 1
+
+    amounts = [info['amount'] for info in country_data.values()]
+    _max, _min = max(amounts), min(amounts)
+
+    map_data = []
+    for country, info in country_data.items():
+        entry = {
+            'id': info['id'],
+            'lat': info['lat'],
+            'lng': info['lng'],
+            'text': f"{country}: ${info['amount']:,.0f}",
+            'size': normalize_amount(info['amount'], _min, _max)
+        }
+        map_data.append(entry)
+
+    return map_data, ['all'] + sorted(country_set)
+
+
+def get_total_amount(data):
+    total = 0
+    for aid in data:
+        total += aid.amount
+    return total
+
+
+def get_foreign_aid(db, filters):
+    country, year = filters['country'], filters['year']
+
+    base_query = db.query(ForeignAid)
+
+    if year != 'all':
+        year_query = base_query.filter(ForeignAid.year == year)
+    else:
+        year_query = base_query
+
+    if country != 'all':
+        country_query = base_query.filter(ForeignAid.country == country)
+    else:
+        country_query = base_query
+
+    map_query = year_query.all()
+    bar_query = country_query.all()
+
+    if country != 'all' and year != 'all':
+        total_amount = db.query(func.sum(ForeignAid)).filter(and_(ForeignAid.country == country, ForeignAid.year == year)).scalar()
+    elif country != 'all':
+        total_amount = db.query(func.sum(ForeignAid.amount)).filter(ForeignAid.country == country).scalar()
+    elif year != 'all':
+        total_amount = db.query(func.sum(ForeignAid.amount)).filter(ForeignAid.year == year).scalar()
+    else:
+        total_amount = db.query(func.sum(ForeignAid.amount)).scalar()
+
+    map_data, countries = get_map_data(map_query)
+    bar_data = get_bar_data(bar_query)
+    total_amount = total_amount if total_amount is not None else 0
+
+    return map_data, bar_data, total_amount, countries
