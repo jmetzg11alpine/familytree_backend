@@ -51,5 +51,3 @@ class Visitor(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     ip_address = Column(String(225))
     date = Column(Date, default=func.now())
-
-
