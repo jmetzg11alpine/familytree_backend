@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Boolean, Integer, Float, String, Date, DateTime
 from sqlalchemy.sql import func
-from src.database import Base
+from database import Base
 
 
 # see my family

@@ -6,6 +6,8 @@ src/family_tree/PHOTOS/*
 
 src/family_tree/data*
 
+src/budget/data*
+
 __pycache__
 
 init-scripts/*

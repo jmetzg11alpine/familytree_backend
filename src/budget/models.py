@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float
-from src.database import Base
+from database import Base
 
 
 class AgencyBudget(Base):

@@ -1,12 +1,15 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
-from models import Base, User, AgencyBudget, ForeignAid, FunctionSpending
+from database import Base
+from src.family_tree.models import User
+from src.budget.models import AgencyBudget, ForeignAid, FunctionSpending
 from urllib.parse import quote_plus
 import requests
 from collections import defaultdict
 import os
 import sys
+import json
 import csv
 import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -80,6 +83,8 @@ def fetch_budget_resources():
             print(f'budget resource for {name}')
             response = requests.get(f'https://api.usaspending.gov/api/v2/agency/{code}/budgetary_resources/')
             data = response.json()
+            # response layout: https://api.usaspending.gov/api/v2/agency/012/budgetary_resources/
+            # the index 0 has the most recent year
             budget = data['agency_data_by_year'][0]['agency_budgetary_resources']
             if budget:
                 agency_budgets[name] = budget
@@ -105,7 +110,7 @@ def fetch_function_spending(agency_codes):
                     amount = result['gross_outlay_amount']
                     function_spending[year][function_name] += amount
             except Exception as e:
-                print(f'could not find for budge functions for {agency_name}, {e}')
+                print(f'could not find for budget functions for {agency_name}, {e}')
     return function_spending
 
 
@@ -132,7 +137,7 @@ def check_data_quality(agency_budgets, function_spending):
     return agency and function
 
 
-def clearn_previous_data(session):
+def clear_previous_data(session):
     session.query(AgencyBudget).delete()
     session.query(FunctionSpending).delete()
     session.commit()
@@ -140,7 +145,7 @@ def clearn_previous_data(session):
 
 
 def update_date_in_text_file():
-    file_name = os.path.join(current_dir, 'data', 'budget_update.txt')
+    file_name = os.path.join(current_dir, 'src', 'budget', 'data', 'budget_update.txt')
     today = str(datetime.date.today())
     with open(file_name, 'w') as file:
         file.write(today)
@@ -152,10 +157,10 @@ def update_budget(session):
         function_spending = fetch_function_spending(agency_codes)
 
         if check_data_quality(agency_budgets, function_spending):
-            clearn_previous_data(session)
+            clear_previous_data(session)
 
             add_agency_budgets(agency_budgets, session)
-
+            add_function_spending(function_spending, session)
             update_date_in_text_file()
 
         else:
@@ -164,77 +169,57 @@ def update_budget(session):
         print(f'Could not update Budget tables: {e}')
 
 
-def fetch_country_latlng():
-    url = "https://restcountries.com/v3.1/all"
-    response = requests.get(url)
-    countries = response.json()
-
-    name_mapper = {
-        'Cape Verde': 'Cabo Verde',
-        'Ivory Coast': "Cote d'Ivoire",
-        'Saint Kitts and Nevis': 'St. Kitts and Nevis',
-        'Saint Lucia': 'St. Lucia',
-        'Saint Vincent and the Grenadines': 'St. Vincent and Grenadines'
-    }
-
-    lat_dict, lng_dict = {}, {}
-    for country in countries:
-        name = country['name']['common']
-        if name in name_mapper:
-            name = name_mapper[name]
-        latlng = country['latlng']
-        lat_dict[name] = latlng[0]
-        lng_dict[name] = latlng[1]
-
-    return lat_dict, lng_dict
-
-
-def concatenat_foreign_aid_csvs():
-    data = defaultdict(lambda: defaultdict(float))
-    for year in range(2015, 2025):
-        with open(f'data/foreign_aid/foreign_aid_{year}.csv', mode='r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                country = row['Country Name']
-                amount = float(row['Constant Dollar Amount'])
-                data[country][year] += amount
-
+def prep_foreign_aid_data():
     replacements = {
-        'China (Hong Kong, S.A.R., P.R.C.)': 'China',
-        'China (P.R.C.)': 'China',
-        'China (Tibet)': 'China',
-        'Burma (Myanmar)': 'Myanmar',
-        'Congo (Brazzaville)': 'Republic of the Congo',
-        'Congo (Kinshasa)': 'DR Congo',
-        'Korea, Democratic Republic of': 'North Korea',
-        'Korea, Republic of': 'South Korea',
-        'Sao Tome and Principe': 'São Tomé and Príncipe',
-        'Slovak Republic': 'Slovakia',
-        'Sudan (former)': 'Sudan',
-        'West Bank and Gaza': 'Palestine',
-        'Micronesia, Federated States of': 'Micronesia',
-        'Kiribati, Republic of': 'Kiribati',
-        'Curacao': 'Curaçao',
-        'Serbia and Montenegro (former)': 'Serbia'
-    }
+            'China (Hong Kong, S.A.R., P.R.C.)': 'China',
+            'China (P.R.C.)': 'China',
+            'China (Tibet)': 'China',
+            'Burma (Myanmar)': 'Myanmar',
+            'Congo (Brazzaville)': 'Republic of the Congo',
+            'Congo (Kinshasa)': 'DR Congo',
+            'Korea, Democratic Republic of': 'North Korea',
+            'Korea, Republic of': 'South Korea',
+            'Sao Tome and Principe': 'São Tomé and Príncipe',
+            'Slovak Republic': 'Slovakia',
+            'Sudan (former)': 'Sudan',
+            'West Bank and Gaza': 'Palestine',
+            'Micronesia, Federated States of': 'Micronesia',
+            'Kiribati, Republic of': 'Kiribati',
+            'Curacao': 'Curaçao',
+            'Serbia and Montenegro (former)': 'Serbia'
+        }
+    exclude = ['World']
+    with open('src/budget/data/lat_lng_mapper.json', 'r') as json_file:
+        lat_lng_mapper = json.load(json_file)
+    data = defaultdict(lambda: defaultdict(float))
+    with open('src/budget/data/foreign_aid_all.csv', 'r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        for row in csv_reader:
+            country = row['Country Name']
+            year = row['Fiscal Year']
+            amount = row['Constant Dollar Amount']
+            country = replacements.get(country, country)
+            try:
+                if country not in exclude and 'Region' not in country:
+                    data[country][year] += int(amount)
+            except Exception as e:
+                print(country, e)
 
-    result = []
-    exclude_list = ['Region', 'World', 'United States']
+    entries = []
     for country, years in data.items():
-        if all(exclude not in country for exclude in exclude_list):
-            fixed_country = replacements.get(country, country)
-            for year, total_amount in years.items():
-                result.append({
-                    'country': fixed_country,
-                    'year': year,
-                    'amount': total_amount
-                })
-    return result
+        for year, amount in years.items():
+            entries.append({
+                'country': country,
+                'year': year,
+                'amount': amount,
+                'lat': lat_lng_mapper[country]['lat'],
+                'lng': lat_lng_mapper[country]['lng']
+            })
+    return entries
 
 
 def update_foreign_aid(session):
-    lat_dict, lng_dict = fetch_country_latlng()
-    entries = concatenat_foreign_aid_csvs()
+    entries = prep_foreign_aid_data()
 
     session.query(ForeignAid).delete()
 
@@ -243,8 +228,8 @@ def update_foreign_aid(session):
             country=entry['country'],
             year=entry['year'],
             amount=entry['amount'],
-            lat=lat_dict[entry['country']],
-            lng=lng_dict[entry['country']])
+            lat=entry['lat'],
+            lng=entry['lng'])
         for entry in entries
     ]
 
@@ -255,6 +240,7 @@ def update_foreign_aid(session):
 
 
 if __name__ == '__main__':
+    # users aren't saved in the backup. They can be manually added here
     if len(sys.argv) > 1 and sys.argv[1] == 'users':
         session = start_session_and_create_schemas()
         add_users(session)
@@ -263,9 +249,36 @@ if __name__ == '__main__':
         session = start_session_and_create_schemas()
         update_foreign_aid(session)
         session.close()
-    elif len(sys.argv) > 1 and sys.argv[1] == 'users':
+    elif len(sys.argv) > 1 and sys.argv[1] == 'budget':
         session = start_session_and_create_schemas()
         update_budget(session)
         session.close()
     else:
         print('add argument: budget, foreign_aid, or users')
+
+
+# to get the lat and lng of countries.
+# works in a jupyter notebook but not in the fastAPI app
+# def fetch_country_latlng():
+#     url = "https://restcountries.com/v3.1/all"
+#     response = requests.get(url)
+#     countries = response.json()
+
+#     name_mapper = {
+#         'Cape Verde': 'Cabo Verde',
+#         'Ivory Coast': "Cote d'Ivoire",
+#         'Saint Kitts and Nevis': 'St. Kitts and Nevis',
+#         'Saint Lucia': 'St. Lucia',
+#         'Saint Vincent and the Grenadines': 'St. Vincent and Grenadines'
+#     }
+
+#     lat_lng_mapper = {}
+#     for country in countries:
+#         name = country['name']['common']
+#         if name in name_mapper:
+#             name = name_mapper[name]
+#         latlng = country['latlng']
+#         lat_lng_mapper[country] = {'lat': latlng[0], 'lng': latlng[1]}
+
+#     with open('lat_lng_mapper.json', 'w') as json_file:
+#         json.dump(lat_lng_mapper, json_file)

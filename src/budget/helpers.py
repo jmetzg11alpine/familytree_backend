@@ -188,11 +188,9 @@ def get_agency_comparison(db):
     for entry in results:
         if entry.name in keep:
             value = round(entry.amount / 1000000000)
-            main_color = 'rgb(' + keep[entry.name] + ')'
-            border_color = 'rgb(' + keep[entry.name] + '0.5)'
-            insort(data[entry.name], (entry.year, value, main_color, border_color))
+            insort(data[entry.name], (entry.year, value))
             x_labels.add(entry.year)
-            agencies.add((entry.name, main_color))
+            agencies.add((entry.name))
 
     x_labels = sorted(x_labels)
     return data, x_labels, list(agencies)
