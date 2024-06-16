@@ -45,7 +45,7 @@ def get_agency_budget(db):
         '135, 206, 235',
         '147, 112, 219',
         '219, 112, 147'
-        ]
+    ]
 
     main_data, other_data = [], []
     main_other_value = 0
@@ -63,7 +63,7 @@ def get_agency_budget(db):
             other_data.append({'label': renaming.get(entry.agency, entry.agency),
                                'value': entry.budget,
                                'tooltip': entry.agency,
-                               'backgroundColor': 'rgba(' + colors[i-9] + ', 1)'
+                               'backgroundColor': 'rgba(' + colors[i - 9] + ', 1)'
                                })
         else:
             main_other_value += entry.budget

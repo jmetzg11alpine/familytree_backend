@@ -8,6 +8,8 @@ src/family_tree/data*
 
 src/budget/data*
 
+src/health/data.csv
+
 __pycache__
 
 init-scripts/*

@@ -5,10 +5,6 @@ import uvicorn
 from src import combined_router
 import sys
 
-# registering the models
-import src.family_tree.models
-import src.budget.models
-
 app = FastAPI()
 app.include_router(combined_router)
 

@@ -127,19 +127,19 @@ def search_potential_relatives(minX, maxX, minY, maxY, db, id):
 
 
 def find_parents(x, y, db, id):
-    return search_potential_relatives(x-8, x+8, y-4, y, db, id)
+    return search_potential_relatives(x - 8, x + 8, y - 4, y, db, id)
 
 
 def find_siblings(x, y, db, id):
-    return search_potential_relatives(x-8, x+8, y-2, y+2, db, id)
+    return search_potential_relatives(x - 8, x + 8, y - 2, y + 2, db, id)
 
 
 def find_children(x, y, db, id):
-    return search_potential_relatives(x-8, x+8, y, y+4, db, id)
+    return search_potential_relatives(x - 8, x + 8, y, y + 4, db, id)
 
 
 def find_spouses(x, y, db, id):
-    return search_potential_relatives(x-4, x+4, y-2, y+2, db, id)
+    return search_potential_relatives(x - 4, x + 4, y - 2, y + 2, db, id)
 
 
 def find_potential_relatives(db, coor, id):
@@ -247,7 +247,7 @@ def get_editable_details(id, db):
     if person:
         person_id = person.id
         x, y = str(person.x), str(person.y)
-        potential_relatives = find_potential_relatives(db, x+'<>'+y, person_id)
+        potential_relatives = find_potential_relatives(db, x + '<>' + y, person_id)
         data = {}
         for field in ['parents', 'siblings', 'children', 'spouses']:
             get_values_and_options(person, db, field, potential_relatives, data)
@@ -261,8 +261,7 @@ def get_editable_details(id, db):
             {'label': 'Parents', 'options': data['parents']['options'], 'value': data['parents']['values'], 'multiple': True},
             {'label': 'Siblings', 'options': data['siblings']['options'], 'value': data['siblings']['values'], 'multiple': True},
             {'label': 'Children', 'options': data['children']['options'], 'value': data['children']['values'], 'multiple': True},
-            {'label': 'Spouse', 'options': data['spouses']['options'], 'value': data['spouses']['values'], 'multiple': True}
-            ]}
+            {'label': 'Spouse', 'options': data['spouses']['options'], 'value': data['spouses']['values'], 'multiple': True}]}
     else:
         return {}
 
@@ -513,7 +512,7 @@ def query_visitors(time_range, today, db):
 def group_by_day(visitors, today):
     days_of_week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     current_day_index = days_of_week.index(today.strftime('%a'))
-    ordered_days = days_of_week[current_day_index+1:] + days_of_week[:current_day_index+1]
+    ordered_days = days_of_week[current_day_index + 1:] + days_of_week[:current_day_index + 1]
     counts = defaultdict(int, {day: 0 for day in days_of_week})
     for visitor in visitors:
         day = visitor.date.strftime('%a')
