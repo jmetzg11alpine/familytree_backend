@@ -10,6 +10,10 @@ src/budget/data*
 
 src/health/data.csv
 
+src/logistics/data*
+
 __pycache__
 
 init-scripts/*
+
+venv
