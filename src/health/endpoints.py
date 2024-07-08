@@ -13,10 +13,17 @@ def get_db():
         db.close()
 
 
+@router.get('/api/get_health_max_date')
+async def get_max_date(request: Request, db: Session = Depends(get_db)):
+    return helpers.get_max_date(db)
+
+
 @router.post('/api/get_health')
 async def get_health(request: Request, db: Session = Depends(get_db)):
-    start_date = await request.json()
-    data = helpers.get_health_data(db, start_date)
+    body = await request.json()
+    end_date = body.get('endDate')
+    time_period = body.get('timePeriod')
+    data = helpers.get_health_data(db, end_date, time_period)
     return {'data': data}
 
 
@@ -38,8 +45,9 @@ async def delete_health_entry(request: Request, db: Session = Depends(get_db)):
 
 @router.post('/api/get_health_chart_data')
 async def get_chart_data(request: Request, db: Session = Depends(get_db)):
-    data = await request.json()
-    column = data['column']
-    start_date = data['startDate']
-    resp = helpers.get_chart_data(db, column, start_date)
+    body = await request.json()
+    column = body['column']
+    end_date = body.get('endDate')
+    time_period = body.get('timePeriod')
+    resp = helpers.get_chart_data(db, column, end_date, time_period)
     return {"data": resp}

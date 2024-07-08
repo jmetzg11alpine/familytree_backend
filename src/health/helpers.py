@@ -1,19 +1,47 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from .models import Health
-from sqlalchemy import desc, asc
+from sqlalchemy import desc, asc, func
 
 
-def get_health_data(db, start_date):
-    start_date_dt = datetime.strptime(start_date, '%Y-%m-%d')
-    data = db.query(Health).filter(Health.timestamp >= start_date_dt).order_by(desc(Health.timestamp)).all()
+def get_max_date(db):
+    return db.query(func.max(Health.timestamp)).scalar()
+
+
+def get_health_data(db, end_date, time_period):
+    count = get_day_count(time_period)
+
+    if end_date is None:
+        max_timestamp = db.query(func.max(Health.timestamp)).scalar()
+        end_date_dt = max_timestamp  + timedelta(days=1)
+    else:
+        end_date_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+    query = db.query(Health).filter(Health.timestamp <= end_date_dt).order_by(desc(Health.timestamp))
+
+    if count is not None:
+        query = query.limit(count)
+
+    data = query.all()
+
     for entry in data:
         entry.timestamp = entry.timestamp.strftime('%Y-%m-%d %H:%M')
     return data
 
 
-def get_chart_data(db, column, start_date):
-    start_date_dt = datetime.strptime(start_date, '%Y-%m-%d')
-    data = db.query(Health).filter(Health.timestamp >= start_date_dt).order_by(asc(Health.timestamp)).all()
+def get_chart_data(db, column, end_date, time_period):
+    print(end_date)
+    count = get_day_count(time_period)
+    if end_date is None:
+        max_timestamp = db.query(func.max(Health.timestamp)).scalar()
+        end_date_dt = max_timestamp + timedelta(days=1)
+    else:
+        end_date_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+    query = db.query(Health).filter(Health.timestamp <= end_date_dt).order_by(desc(Health.timestamp))
+
+    if count is not None:
+        query = query.limit(count)
+
+    data = query.all()
+
     resp = []
     for entry in data:
 
@@ -32,6 +60,15 @@ def get_chart_data(db, column, start_date):
             'pressure': entry.pressure
         })
     return resp
+
+
+def get_day_count(time_period):
+    if time_period == 'week':
+        return 7
+    elif time_period == 'month':
+        return 30
+    else:
+        return None
 
 
 def add_health_entry(db, new_entry):
