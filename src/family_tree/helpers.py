@@ -78,7 +78,9 @@ def process_relationships(db, relationship_string):
 
 
 def get_bio(name):
-    bio_file_path = os.path.join('family_tree', 'BIOS', name) + '.txt'
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    print(current_dir)
+    bio_file_path = os.path.join(current_dir, 'BIOS', name) + '.txt'
     if not os.path.exists(bio_file_path) or not os.path.isfile(bio_file_path):
         return None
     else:
@@ -479,7 +481,7 @@ def record_action(current_user, action, name, db):
 
 def get_data_url():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    data_url_path = os.path.join(current_dir, 'family_tree', 'data', 'data_url.txt')
+    data_url_path = os.path.join(current_dir, 'data', 'data_url.txt')
     with open(data_url_path, 'r', encoding='utf-8') as file:
         file_contents = file.read()
     return file_contents

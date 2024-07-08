@@ -12,7 +12,7 @@ def get_health_data(db, end_date, time_period):
 
     if end_date is None:
         max_timestamp = db.query(func.max(Health.timestamp)).scalar()
-        end_date_dt = max_timestamp  + timedelta(days=1)
+        end_date_dt = max_timestamp + timedelta(days=1)
     else:
         end_date_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
     query = db.query(Health).filter(Health.timestamp <= end_date_dt).order_by(desc(Health.timestamp))
@@ -28,7 +28,6 @@ def get_health_data(db, end_date, time_period):
 
 
 def get_chart_data(db, column, end_date, time_period):
-    print(end_date)
     count = get_day_count(time_period)
     if end_date is None:
         max_timestamp = db.query(func.max(Health.timestamp)).scalar()
