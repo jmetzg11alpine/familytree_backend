@@ -64,6 +64,11 @@ async def get_count_revenue(request: Request, db: Session = Depends(get_db)):
     results = query.order_by(asc(Order.created_at)).all()
     results_list = [result._asdict() for result in results]
     df = pd.DataFrame(results_list)
+
+    routes, table, proportions = [], [], {}
+    sales_customer = {'labels': [], 'datasets': []}
+    time = {'names': [], 'process': [], 'delivery': []}
+
     if len(df):
         routes = helpers.get_routes(df[['start_location', 'end_location']])
         sales_customer = helpers.get_sales_customers(df[['customer', 'sales_person']])

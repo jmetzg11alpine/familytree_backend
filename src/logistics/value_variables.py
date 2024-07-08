@@ -43,4 +43,3 @@ customer_colors = {
     'Rite Aid': {'borderColor': 'rgba(255, 100, 0, 1)', 'backgroundColor': 'rgba(255, 100, 0, 0.6)'},
     'Dollar General': {'borderColor': 'rgba(75, 0, 100, 1)', 'backgroundColor': 'rgba(75, 0, 100, 0.6)'}
 }
-

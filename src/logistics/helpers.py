@@ -170,39 +170,43 @@ def get_warehouse(warehouse, end_date, days):
 
 
 def get_routes(df):
-    route_counts = df.groupby(['start_location', 'end_location']).size().reset_index(name='count')
-    routes_sorted = route_counts.sort_values(by='count', ascending=False)
-    routes_taken = routes_sorted[routes_sorted['count'] > 0]
-    return [(r['start_location'], r['end_location'], r['count']) for i, r in routes_taken.iterrows()]
-
-
+    try:
+        route_counts = df.groupby(['start_location', 'end_location']).size().reset_index(name='count')
+        routes_sorted = route_counts.sort_values(by='count', ascending=False)
+        routes_taken = routes_sorted[routes_sorted['count'] > 0]
+        return [(r['start_location'], r['end_location'], r['count']) for i, r in routes_taken.iterrows()]
+    except:
+        return []
 
 
 def get_sales_customers(df):
-    customer_counts = df['customer'].value_counts().sort_values(ascending=True)
-    customers = customer_counts.index.tolist()
+    try:
+        customer_counts = df['customer'].value_counts().sort_values(ascending=True)
+        customers = customer_counts.index.tolist()
 
-    data = defaultdict(list)
-    for sales, sales_df in df.groupby('sales_person'):
-        for customer in customers:
-            customer_count = len(sales_df[sales_df['customer'] == customer])
-            data[sales].append(customer_count)
+        data = defaultdict(list)
+        for sales, sales_df in df.groupby('sales_person'):
+            for customer in customers:
+                customer_count = len(sales_df[sales_df['customer'] == customer])
+                data[sales].append(customer_count)
 
-    datasets = []
-    for sales, data in data.items():
-        datasets.append({
-            'label': sales,
-            'data': data,
-            'backgroundColor': sales_colors[sales]['backgroundColor'],
-            'borderColor': sales_colors[sales]['borderColor'],
-            'borderWidth': 1,
-            'sum_data': sum(data),
-        })
+        datasets = []
+        for sales, data in data.items():
+            datasets.append({
+                'label': sales,
+                'data': data,
+                'backgroundColor': sales_colors[sales]['backgroundColor'],
+                'borderColor': sales_colors[sales]['borderColor'],
+                'borderWidth': 1,
+                'sum_data': sum(data),
+            })
 
-    return {
-        'labels': list(customers),
-        'datasets': datasets
-    }
+        return {
+            'labels': list(customers),
+            'datasets': datasets
+        }
+    except:
+        return {'labels': [], 'datasets': []}
 
 
 def get_proportions(df):
@@ -263,39 +267,49 @@ def get_proportions(df):
 
 
 def get_time(df):
-    names = []
-    process = []
-    delivery = []
-    for sales_person, group_df in df.groupby('sales_person'):
-        names.append(sales_person)
+    try:
+        names = []
+        process = []
+        delivery = []
+        for sales_person, group_df in df.groupby('sales_person'):
+            names.append(sales_person)
 
-        delivery_time = group_df['arrived'] - group_df['created_at']
-        delivery_time_minutes = delivery_time.dt.total_seconds() / (60 * 60)
-        average_delivery_time = int(delivery_time_minutes.mean())
-        delivery.append(average_delivery_time)
+            delivery_time = group_df['arrived'] - group_df['created_at']
+            delivery_time_minutes = delivery_time.dt.total_seconds() / (60 * 60)
+            average_delivery_time = int(delivery_time_minutes.mean())
+            delivery.append(average_delivery_time)
 
-        process_time = group_df['shipped'] - group_df['created_at']
-        process_time_minues = process_time.dt.total_seconds() / (60 * 60)
-        average_process_time = int(process_time_minues.mean())
-        process.append(average_process_time)
+            process_time = group_df['shipped'] - group_df['created_at']
+            process_time_minues = process_time.dt.total_seconds() / (60 * 60)
+            average_process_time = int(process_time_minues.mean())
+            process.append(average_process_time)
 
-    return {
-        'names': names,
-        'process': process,
-        'delivery': delivery
-    }
+        return {
+            'names': names,
+            'process': process,
+            'delivery': delivery
+        }
+    except:
+        return {
+            'names': [],
+            'process': [],
+            'delivery': []
+        }
 
 
 def get_table(df):
-    df['created_at_date'] = [x.date() if x else None for x in df['created_at']]
-    df['arrived_date'] = [x.date() if x else None for x in df['arrived']]
-    df['shipped_date'] = [x.date() if x else None for x in df['shipped']]
+    try:
+        df['created_at_date'] = [x.date() if x else None for x in df['created_at']]
+        df['arrived_date'] = [x.date() if x else None for x in df['arrived']]
+        df['shipped_date'] = [x.date() if x else None for x in df['shipped']]
 
-    df['order_no'] = df['order_no'].astype(int)
-    df['units'] = df['units'].astype(int)
-    df['miles'] = df['miles'].astype(int)
-    df['payment_received'] = df['payment_received'].astype(int)
-    df['truck_cost'] = df['truck_cost'].astype(int)
-    df['driver_cost'] = df['driver_cost'].astype(int)
-    df['bus_id'] = df['bus_id'].astype(int)
-    return df.to_dict(orient='records')
+        df['order_no'] = df['order_no'].astype(int)
+        df['units'] = df['units'].astype(int)
+        df['miles'] = df['miles'].astype(int)
+        df['payment_received'] = df['payment_received'].astype(int)
+        df['truck_cost'] = df['truck_cost'].astype(int)
+        df['driver_cost'] = df['driver_cost'].astype(int)
+        df['bus_id'] = df['bus_id'].astype(int)
+        return df.to_dict(orient='records')
+    except:
+        return []
