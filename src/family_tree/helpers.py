@@ -9,6 +9,8 @@ from collections import defaultdict
 from PIL import Image
 import io
 
+current_dir = os.path.dirname(__file__)
+
 
 def record_visitor(client_ip, db):
     current_date = datetime.now().date()
@@ -90,8 +92,9 @@ def get_profile_photo(db, id):
     if photo:
         path = photo.path
     else:
-        path = 'family_tree/PHOTOS/default_photo.png'
-    with open(path, 'rb') as image_file:
+        path = './PHOTOS/default_photo.png'
+    absolute_path = os.path.join(current_dir, path)
+    with open(absolute_path, 'rb') as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
 
