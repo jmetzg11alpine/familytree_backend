@@ -32,19 +32,16 @@ def get_agency_budget(db):
     }
 
     colors = [
-        '135, 206, 250',
-        '255, 192, 203',
-        '221, 160, 221',
-        '255, 182, 193',
-        '176, 224, 230',
-        '173, 216, 230',
-        '152, 251, 152',
-        '255, 160, 122',
-        '250, 128, 114',
-        '255, 127, 80',
-        '135, 206, 235',
-        '147, 112, 219',
-        '219, 112, 147'
+        '0, 128, 128',   # Teal
+        '255, 99, 71',   # Tomato
+        '124, 252, 0',   # Lawn Green
+        '70, 130, 180',  # Steel Blue
+        '255, 215, 0',   # Gold
+        '0, 191, 255',   # Deep Sky Blue
+        '255, 69, 0',    # Orange Red
+        '138, 43, 226',  # Blue Violet
+        '60, 179, 113',  # Medium Sea Green
+        '218, 165, 32'   # Golden Rod
     ]
 
     main_data, other_data = [], []
@@ -176,21 +173,12 @@ def get_agency_comparison(db):
     data = defaultdict(list)
     x_labels = set()
     agencies = set()
-    keep = {'Transportation': '0, 120, 215',
-            'Net Interest': '128, 0, 0',
-            'Education, Training, Employment, and Social Services': '255, 165, 0',
-            'Energy': '255, 215, 0',
-            'Agriculture': '34, 139, 34',
-            'National Defense': '80, 80, 80',
-            'Health': '0, 191, 255',
-            'Commerce and Housing Credit': '105, 105, 105'}
 
     for entry in results:
-        if entry.name in keep:
-            value = round(entry.amount / 1000000000)
-            insort(data[entry.name], (entry.year, value))
-            x_labels.add(entry.year)
-            agencies.add((entry.name))
+        value = round(entry.amount / 1000000000)
+        insort(data[entry.name], (entry.year, value))
+        x_labels.add(entry.year)
+        agencies.add((entry.name))
 
     x_labels = sorted(x_labels)
     return data, x_labels, list(agencies)

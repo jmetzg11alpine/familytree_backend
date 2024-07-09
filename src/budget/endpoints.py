@@ -30,5 +30,4 @@ async def get_foreign_aid(request: Request, db: Session = Depends(get_db)):
 @router.get('/api/agency_comparison')
 async def get_agency_comparison(db: Session = Depends(get_db)):
     data, x_labels, agencies = helpers.get_agency_comparison(db)
-    print(data)
     return {'line_data': data, 'x_labels': x_labels, 'agencies': agencies}

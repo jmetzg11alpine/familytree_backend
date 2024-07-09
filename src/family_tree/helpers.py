@@ -78,9 +78,7 @@ def process_relationships(db, relationship_string):
 
 
 def get_bio(name):
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    print(current_dir)
-    bio_file_path = os.path.join(current_dir, 'BIOS', name) + '.txt'
+    bio_file_path = os.path.join(current_dir, 'data', 'BIOS', name) + '.txt'
     if not os.path.exists(bio_file_path) or not os.path.isfile(bio_file_path):
         return None
     else:
@@ -94,7 +92,7 @@ def get_profile_photo(db, id):
     if photo:
         path = photo.path
     else:
-        path = './PHOTOS/default_photo.png'
+        path = './data/PHOTOS/default_photo.png'
     absolute_path = os.path.join(current_dir, path)
     with open(absolute_path, 'rb') as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
@@ -360,7 +358,8 @@ def get_photos(person_id, db):
     paths = []
     for photo in photos:
         if photo.profile_photo:
-            with open(photo.path, 'rb') as image_file:
+            absolute_path = os.path.join(current_dir, photo.path)
+            with open(absolute_path, 'rb') as image_file:
                 data['current'] = base64.b64encode(image_file.read()).decode('utf-8')
             data['description'] = photo.description
         paths.append(photo.path)
@@ -373,7 +372,8 @@ def get_photo(path, db):
         data = {}
         data['profile_photo'] = photo.profile_photo
         data['description'] = photo.description
-        with open(photo.path, 'rb') as image_file:
+        absolute_path = os.path.join(current_dir, photo.path)
+        with open(absolute_path, 'rb') as image_file:
             data['current'] = base64.b64encode(image_file.read()).decode('utf-8')
         return data
     else:
@@ -480,7 +480,6 @@ def record_action(current_user, action, name, db):
 
 
 def get_data_url():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
     data_url_path = os.path.join(current_dir, 'data', 'data_url.txt')
     with open(data_url_path, 'r', encoding='utf-8') as file:
         file_contents = file.read()
